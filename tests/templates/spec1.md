@@ -2,7 +2,9 @@
 
 ## Ticket description
 
-{{ ticket }}
+{{ ticket.id }}
+
+{{ ticket.description }}
 
 ## Additional context
 

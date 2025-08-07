@@ -1,16 +1,9 @@
-
+import json
 import os
 import sys
 
 from engine import TemplateEngine, TemplateParseError
-
-
-# Create spec command:
-# cxk create-spec [spec-template]
-# Will output into stdout the rendered spec file
-#
-# For now all it does is to use TemplateEngine to print the list of variables in the template and nothing more.
-# It also prints an error if the template is not found or cannot be parsed.
+from prompt import collect_var_value
 
 
 async def handle_create_spec(spec_template: str):
@@ -31,13 +24,30 @@ async def handle_create_spec(spec_template: str):
         # Get variables from template
         variables = template_engine.get_variables()
 
-        # Print list of variables
+        # Collect values for each variable
+        collected_vars = {}
         if variables:
-            print("Template variables:")
+            print("Collecting values for template variables:")
             for var in sorted(variables):
-                print(f"  - {var}")
+                raw_value = await collect_var_value(var)
+                print(f"  {var}: {raw_value}")
+
+                # Try to parse as JSON if it looks like JSON
+                if raw_value and (raw_value.strip().startswith('{') or raw_value.strip().startswith('[')):
+                    try:
+                        collected_vars[var] = json.loads(raw_value)
+                    except json.JSONDecodeError:
+                        # If it's not valid JSON, use as string
+                        collected_vars[var] = raw_value
+                else:
+                    collected_vars[var] = raw_value
         else:
             print("No variables found in template")
+
+        # Render the template with collected variables
+        rendered_content = await template_engine.render_async(**collected_vars)
+        print("\nRendered template:")
+        print(rendered_content)
 
     except TemplateParseError as e:
         print(f"Error: {e}", file=sys.stderr)

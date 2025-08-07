@@ -41,10 +41,15 @@ class TestCLI:
         with tempfile.TemporaryDirectory() as temp_dir:
             yield Path(temp_dir)
 
-    def run_cli(self, args, cwd=None):
+    def run_cli(self, args, cwd=None, use_test_runner=False):
         """Run the CLI and return result."""
-        # Get the path to cxk.py relative to this test file
-        cli_path = Path(__file__).parent.parent.parent / "cxk.py"
+        if use_test_runner:
+            # Use test runner that patches collect_var_value
+            cli_path = Path(__file__).parent.parent.parent / "test_runner.py"
+        else:
+            # Get the path to cxk.py relative to this test file
+            cli_path = Path(__file__).parent.parent.parent / "cxk.py"
+
         cmd = ["python", str(cli_path)] + args
 
         result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
@@ -321,15 +326,22 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         template_file = temp_non_git_dir / "test_template.j2"
         template_file.write_text(template_content)
 
-        # Run create-spec command
-        result = self.run_cli(["create-spec", str(template_file)])
+        # Run create-spec command with test runner to patch collect_var_value
+        result = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
 
         assert result.returncode == 0
-        assert "Template variables:" in result.stdout
-        assert "- age" in result.stdout
-        assert "- city" in result.stdout
-        assert "- name" in result.stdout
-        assert "- weather" in result.stdout
+        assert "Collecting values for template variables:" in result.stdout
+        # Verify mocked values are displayed
+        assert "age: 25" in result.stdout
+        assert "city: New York" in result.stdout
+        assert "name: John" in result.stdout
+        assert 'weather: {"condition": "sunny", "temp": "75F"}' in result.stdout
+
+        # Verify rendered template output
+        assert "Rendered template:" in result.stdout
+        assert "Hello John!" in result.stdout
+        assert "Your age is 25 and you live in New York." in result.stdout
+        assert "Today's weather is sunny with temperature 75F." in result.stdout
 
     def test_create_spec_no_variables(self, temp_non_git_dir):
         """Test create-spec with a template containing no variables."""
@@ -338,11 +350,15 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         template_file = temp_non_git_dir / "static_template.j2"
         template_file.write_text(template_content)
 
-        # Run create-spec command
-        result = self.run_cli(["create-spec", str(template_file)])
+        # Run create-spec command with test runner (patching won't affect this case)
+        result = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
 
         assert result.returncode == 0
         assert "No variables found in template" in result.stdout
+
+        # Verify rendered template output for static template
+        assert "Rendered template:" in result.stdout
+        assert "This is a static template with no variables." in result.stdout
 
     def test_create_spec_relative_path(self, temp_non_git_dir):
         """Test create-spec with a relative path (filename only)."""
@@ -351,16 +367,20 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         template_file = temp_non_git_dir / "relative_template.j2"
         template_file.write_text(template_content)
 
-        # Run create-spec command with just the filename (relative path)
-        result = self.run_cli(["create-spec", "relative_template.j2"], cwd=temp_non_git_dir)
+        # Run create-spec command with just the filename (relative path) using test runner
+        result = self.run_cli(["create-spec", "relative_template.j2"], cwd=temp_non_git_dir, use_test_runner=True)
 
         assert result.returncode == 0
-        assert "Template variables:" in result.stdout
-        assert "- username" in result.stdout
+        assert "Collecting values for template variables:" in result.stdout
+        assert "username: testuser" in result.stdout
+
+        # Verify rendered template output
+        assert "Rendered template:" in result.stdout
+        assert "Hello testuser!" in result.stdout
 
     def test_create_spec_file_not_found(self, temp_non_git_dir):
         """Test create-spec with non-existent template file."""
-        result = self.run_cli(["create-spec", "non_existent.j2"], cwd=temp_non_git_dir)
+        result = self.run_cli(["create-spec", "non_existent.j2"], cwd=temp_non_git_dir, use_test_runner=True)
 
         assert result.returncode != 0
         assert "Error: Template file 'non_existent.j2' not found" in result.stderr
@@ -372,7 +392,7 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         template_file = temp_non_git_dir / "invalid_template.j2"
         template_file.write_text(template_content)
 
-        # Run create-spec command
-        result = self.run_cli(["create-spec", str(template_file)])
+        # Run create-spec command with test runner
+        result = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
 
         assert result.returncode != 0
