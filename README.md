@@ -1,5 +1,5 @@
 # ContextKit
-A CLI tool and MCP client, used to create spec files for AI coding agents with context baked in, based on reusable spec templates.
+ContextKit is a CLI tool and MCP client, used to create spec files for AI coding agents with context baked in, based on reusable spec templates.
 
 ContextKit aims to simplify and automate the process of creating spec files for AI coding agents. Instead of creating or modifying spec files for each task in a project, ContextKit allows developers to define reusable spec templates that can be filled with context from various sources, either automatically or by providing just the necessary task-specific context variables, such as a ticket ID or Figma URL.
 
@@ -20,7 +20,7 @@ TBD (show template, generation of two specs, and the spec files)
 
 
 ### Initialize a project
-```bash
+```
 cxk init
 ```
 Initialize a new ContextKit project in the current directory.
@@ -28,23 +28,23 @@ Initialize a new ContextKit project in the current directory.
 ### MCP Server Management
 
 Add an SSE MCP server:
-```bash
+```
 cxk mcp add-sse <server-name> <url>
 ```
 
 Add a stdio MCP server:
-```bash
+```
 cxk mcp add-stdio <server-name> [--env key=value] -- <command> [args...]
 ```
 
 Add an HTTP MCP server:
-```bash
+```
 cxk mcp add-http <server-name> <url>
 ```
 
 ### MCP Configuration Examples
 
-```bash
+```
 # Initialize a new project
 cxk init
 
