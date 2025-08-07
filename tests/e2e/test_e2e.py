@@ -308,3 +308,71 @@ class TestCLI:
         assert "ContextKit CLI tool" in result.stdout
         assert "init" in result.stdout
         assert "mcp" in result.stdout
+        assert "create-spec" in result.stdout
+
+    def test_create_spec_with_variables(self, temp_non_git_dir):
+        """Test create-spec with a template containing variables."""
+        # Create a test template with variables
+        template_content = """
+Hello {{ name }}!
+Your age is {{ age }} and you live in {{ city }}.
+Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
+"""
+        template_file = temp_non_git_dir / "test_template.j2"
+        template_file.write_text(template_content)
+
+        # Run create-spec command
+        result = self.run_cli(["create-spec", str(template_file)])
+
+        assert result.returncode == 0
+        assert "Template variables:" in result.stdout
+        assert "- age" in result.stdout
+        assert "- city" in result.stdout
+        assert "- name" in result.stdout
+        assert "- weather" in result.stdout
+
+    def test_create_spec_no_variables(self, temp_non_git_dir):
+        """Test create-spec with a template containing no variables."""
+        # Create a test template without variables
+        template_content = "This is a static template with no variables."
+        template_file = temp_non_git_dir / "static_template.j2"
+        template_file.write_text(template_content)
+
+        # Run create-spec command
+        result = self.run_cli(["create-spec", str(template_file)])
+
+        assert result.returncode == 0
+        assert "No variables found in template" in result.stdout
+
+    def test_create_spec_relative_path(self, temp_non_git_dir):
+        """Test create-spec with a relative path (filename only)."""
+        # Create a test template
+        template_content = "Hello {{ username }}!"
+        template_file = temp_non_git_dir / "relative_template.j2"
+        template_file.write_text(template_content)
+
+        # Run create-spec command with just the filename (relative path)
+        result = self.run_cli(["create-spec", "relative_template.j2"], cwd=temp_non_git_dir)
+
+        assert result.returncode == 0
+        assert "Template variables:" in result.stdout
+        assert "- username" in result.stdout
+
+    def test_create_spec_file_not_found(self, temp_non_git_dir):
+        """Test create-spec with non-existent template file."""
+        result = self.run_cli(["create-spec", "non_existent.j2"], cwd=temp_non_git_dir)
+
+        assert result.returncode != 0
+        assert "Error: Template file 'non_existent.j2' not found" in result.stderr
+
+    def test_create_spec_invalid_template(self, temp_non_git_dir):
+        """Test create-spec with invalid template syntax."""
+        # Create a template with invalid Jinja2 syntax
+        template_content = "Hello {{ name with invalid syntax!"
+        template_file = temp_non_git_dir / "invalid_template.j2"
+        template_file.write_text(template_content)
+
+        # Run create-spec command
+        result = self.run_cli(["create-spec", str(template_file)])
+
+        assert result.returncode != 0

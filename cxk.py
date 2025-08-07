@@ -3,6 +3,7 @@ import asyncio
 import sys
 
 from commands.init import handle_init
+from commands.create_spec import handle_create_spec
 from commands.mcp import (
     MCPAddHttpContext,
     MCPAddSSEContext,
@@ -19,6 +20,10 @@ async def main():
 
     # cxk init
     subparsers.add_parser("init", help="Initialize a new ContextKit project")
+
+    # cxk create-spec [spec-template]
+    create_spec_parser = subparsers.add_parser("create-spec", help="Create spec from template")
+    create_spec_parser.add_argument("spec_template", help="Path to the spec template file")
 
     # cxk mcp
     mcp_parser = subparsers.add_parser("mcp", help="Manage MCP servers")
@@ -57,6 +62,9 @@ async def main():
     try:
         if args.command == "init":
             await handle_init(state)
+
+        elif args.command == "create-spec":
+            await handle_create_spec(args.spec_template)
 
         elif args.command == "mcp":
             if not args.mcp_command:
