@@ -24,7 +24,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        uv sync --dev
+        uv sync --extra test
     
     - name: Run e2e tests
       run: |
