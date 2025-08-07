@@ -2,8 +2,8 @@ import argparse
 import asyncio
 import sys
 
-from commands.init import handle_init
 from commands.create_spec import handle_create_spec
+from commands.init import handle_init
 from commands.mcp import (
     MCPAddHttpContext,
     MCPAddSSEContext,
@@ -35,16 +35,10 @@ async def main():
     add_sse_parser.add_argument("url", help="URL of the SSE server")
 
     # cxk mcp add-stdio [server-name] --env [env-var] -- [command]
-    add_stdio_parser = mcp_subparsers.add_parser(
-        "add-stdio", help="Add stdio MCP server"
-    )
+    add_stdio_parser = mcp_subparsers.add_parser("add-stdio", help="Add stdio MCP server")
     add_stdio_parser.add_argument("server_name", help="Name of the server")
-    add_stdio_parser.add_argument(
-        "--env", action="append", help="Environment variable (key=value)"
-    )
-    add_stdio_parser.add_argument(
-        "command_line", nargs=argparse.ONE_OR_MORE, help="Command to run"
-    )
+    add_stdio_parser.add_argument("--env", action="append", help="Environment variable (key=value)")
+    add_stdio_parser.add_argument("command_line", nargs=argparse.ONE_OR_MORE, help="Command to run")
 
     # cxk mcp add-http [server-name] [url]
     add_http_parser = mcp_subparsers.add_parser("add-http", help="Add HTTP MCP server")
@@ -74,9 +68,7 @@ async def main():
             if args.mcp_command == "add-sse":
                 mcp_context = MCPCommandContext(
                     subcommand="add-sse",
-                    add_sse=MCPAddSSEContext(
-                        server_name=args.server_name, url=args.url
-                    ),
+                    add_sse=MCPAddSSEContext(server_name=args.server_name, url=args.url),
                 )
                 await handle_mcp(state, mcp_context)
 
@@ -94,9 +86,7 @@ async def main():
             elif args.mcp_command == "add-http":
                 mcp_context = MCPCommandContext(
                     subcommand="add-http",
-                    add_http=MCPAddHttpContext(
-                        server_name=args.server_name, url=args.url
-                    ),
+                    add_http=MCPAddHttpContext(server_name=args.server_name, url=args.url),
                 )
                 await handle_mcp(state, mcp_context)
 

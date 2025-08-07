@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "jinja2>=3.1.6",
     "pydantic>=2.11.7",
+    "questionary>=2.1.0",
 ]
 
 [project.optional-dependencies]

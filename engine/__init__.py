@@ -18,6 +18,7 @@ class TemplateEngine:
         self.env = Environment(
             loader=FileSystemLoader(template_dir),
             autoescape=select_autoescape(),
+            enable_async=True,
         )
         self.template = self.env.get_template(template_name)
         self.template_path = template_path
