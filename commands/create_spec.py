@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 
@@ -6,8 +7,12 @@ from engine import TemplateEngine, TemplateParseError
 from prompt import collect_var_value
 
 
-async def handle_create_spec(spec_template: str, output_file: str | None = None, var_overrides: list[str] | None = None):
+async def handle_create_spec(spec_template: str, output_file: str | None = None, var_overrides: list[str] | None = None, verbose: bool = False):
     """Handle the create-spec command"""
+
+    # Configure logging based on verbose flag
+    log_level = logging.DEBUG if verbose else logging.WARNING
+    logging.basicConfig(level=log_level, format='%(message)s', stream=sys.stdout, force=True)
 
     # Resolve relative paths against current working directory
     template_path = os.path.abspath(spec_template)
@@ -37,14 +42,14 @@ async def handle_create_spec(spec_template: str, output_file: str | None = None,
         # Collect values for each variable
         collected_vars = {}
         if variables:
-            print("Collecting values for template variables:")
+            logging.info("Collecting values for template variables:")
             for var in sorted(variables):
                 if var in provided_vars:
                     raw_value = provided_vars[var]
-                    print(f"  {var}: {raw_value}")
+                    logging.info(f"  {var}: {raw_value}")
                 else:
                     raw_value = await collect_var_value(var)
-                    print(f"  {var}: {raw_value}")
+                    logging.info(f"  {var}: {raw_value}")
 
                 # Try to parse as JSON if it looks like JSON
                 if raw_value and (raw_value.strip().startswith('{') or raw_value.strip().startswith('[')):
@@ -56,7 +61,7 @@ async def handle_create_spec(spec_template: str, output_file: str | None = None,
                 else:
                     collected_vars[var] = raw_value
         else:
-            print("No variables found in template")
+            logging.info("No variables found in template")
 
         # Render the template with collected variables
         rendered_content = await template_engine.render_async(**collected_vars)
@@ -66,9 +71,9 @@ async def handle_create_spec(spec_template: str, output_file: str | None = None,
             output_path = os.path.abspath(output_file)
             with open(output_path, 'w') as f:
                 f.write(rendered_content)
-            print(f"Rendered template saved to: {output_path}")
+            logging.info(f"Rendered template saved to: {output_path}")
         else:
-            print("\nRendered template:")
+            logging.debug("\nRendered template:")
             print(rendered_content)
 
     except TemplateParseError as e:
