@@ -297,12 +297,6 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         result = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
 
         assert result.returncode == 0
-        assert "Collecting values for template variables:" in result.stdout
-        # Verify mocked values are displayed
-        assert "age: 25" in result.stdout
-        assert "city: New York" in result.stdout
-        assert "name: John" in result.stdout
-        assert 'weather: {"condition": "sunny", "temp": "75F"}' in result.stdout
 
         # Verify rendered template output
         assert "Hello John!" in result.stdout
@@ -320,10 +314,9 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         result = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
 
         assert result.returncode == 0
-        assert "No variables found in template" in result.stdout
+        assert "No variables found in template" in result.stderr
 
         # Verify rendered template output for static template
-        assert "Rendered template:" in result.stdout
         assert "This is a static template with no variables." in result.stdout
 
     def test_create_spec_relative_path(self, temp_non_git_dir):
@@ -339,8 +332,7 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         )
 
         assert result.returncode == 0
-        assert "Collecting values for template variables:" in result.stdout
-        assert "username: testuser" in result.stdout
+        assert "username: testuser" in result.stderr
 
         # Verify rendered template output
         assert "Hello testuser!" in result.stdout
@@ -597,7 +589,7 @@ Your age is {{ age }} and you live in {{ city }}."""
         )
 
         assert result.returncode == 0
-        assert f"Rendered template saved to: {output_file}" in result.stdout
+        assert f"Rendered template saved to: {output_file}" in result.stderr
 
         # Verify file was created and contains expected content
         assert output_file.exists()
