@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Test runner script that patches collect_var_value for e2e testing."""
 import asyncio
+import sys
+from pathlib import Path
 from unittest.mock import patch
+
+# Add parent directory to path so we can import cxk
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from cxk import main
 

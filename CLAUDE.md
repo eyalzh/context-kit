@@ -34,8 +34,7 @@ uv sync
 
 # Run tests
 uv run pytest
-# Alternative test runner
-python run_tests.py
+
 
 # Linting and formatting
 uv run ruff check
@@ -54,6 +53,7 @@ python cxk.py mcp add-http server-name http://localhost:8000
 
 # Create spec from template
 python cxk.py create-spec path/to/template.md
+uv run cxk.py create-spec tests/templates/spec1.md --var additional_context=aa --var ticket='{"id":1}'
 ```
 
 ## Key Files
@@ -70,3 +70,4 @@ python cxk.py create-spec path/to/template.md
 - Git repository detection required for project initialization
 - Template variables can be JSON objects or strings
 - MCP server configurations support stdio, SSE, and HTTP transports (HTTP not fully implemented)
+- Don't use "print" for output; use logging for consistency

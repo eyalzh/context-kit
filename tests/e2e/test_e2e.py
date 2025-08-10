@@ -39,7 +39,7 @@ class TestCLI:
         """Run the CLI and return result."""
         if use_test_runner:
             # Use test runner that patches collect_var_value
-            cli_path = Path(__file__).parent.parent.parent / "test_runner.py"
+            cli_path = Path(__file__).parent.parent / "test_runner.py"
         else:
             # Get the path to cxk.py relative to this test file
             cli_path = Path(__file__).parent.parent.parent / "cxk.py"
