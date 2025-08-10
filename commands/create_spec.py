@@ -6,7 +6,7 @@ from engine import TemplateEngine, TemplateParseError
 from prompt import collect_var_value
 
 
-async def handle_create_spec(spec_template: str):
+async def handle_create_spec(spec_template: str, output_file: str | None = None):
     """Handle the create-spec command"""
 
     # Resolve relative paths against current working directory
@@ -46,8 +46,16 @@ async def handle_create_spec(spec_template: str):
 
         # Render the template with collected variables
         rendered_content = await template_engine.render_async(**collected_vars)
-        print("\nRendered template:")
-        print(rendered_content)
+
+        # Output to file or stdout
+        if output_file:
+            output_path = os.path.abspath(output_file)
+            with open(output_path, 'w') as f:
+                f.write(rendered_content)
+            print(f"Rendered template saved to: {output_path}")
+        else:
+            print("\nRendered template:")
+            print(rendered_content)
 
     except TemplateParseError as e:
         print(f"Error: {e}", file=sys.stderr)

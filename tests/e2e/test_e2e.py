@@ -14,24 +14,18 @@ class TestCLI:
             repo_path = Path(temp_dir)
 
             # Initialize git repo
-            subprocess.run(
-                ["git", "init"], cwd=repo_path, check=True, capture_output=True
-            )
+            subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(
                 ["git", "config", "user.email", "test@example.com"],
                 cwd=repo_path,
                 check=True,
             )
-            subprocess.run(
-                ["git", "config", "user.name", "Test User"], cwd=repo_path, check=True
-            )
+            subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo_path, check=True)
 
             # Create initial commit
             (repo_path / "README.md").write_text("Test repo")
             subprocess.run(["git", "add", "README.md"], cwd=repo_path, check=True)
-            subprocess.run(
-                ["git", "commit", "-m", "Initial commit"], cwd=repo_path, check=True
-            )
+            subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo_path, check=True)
 
             yield repo_path
 
@@ -96,9 +90,7 @@ class TestCLI:
 
     def test_mcp_before_init(self, temp_git_repo):
         """Test MCP commands before initialization should fail."""
-        result = self.run_cli(
-            ["mcp", "add-sse", "test-server", "http://example.com"], cwd=temp_git_repo
-        )
+        result = self.run_cli(["mcp", "add-sse", "test-server", "http://example.com"], cwd=temp_git_repo)
 
         assert result.returncode != 0
         assert "Project not initialized. Run 'cxk init' first." in result.stderr
@@ -110,15 +102,10 @@ class TestCLI:
         assert init_result.returncode == 0
 
         # Add SSE server
-        result = self.run_cli(
-            ["mcp", "add-sse", "test-sse", "http://example.com/sse"], cwd=temp_git_repo
-        )
+        result = self.run_cli(["mcp", "add-sse", "test-sse", "http://example.com/sse"], cwd=temp_git_repo)
 
         assert result.returncode == 0
-        assert (
-            "Added SSE server 'test-sse' with URL: http://example.com/sse"
-            in result.stdout
-        )
+        assert "Added SSE server 'test-sse' with URL: http://example.com/sse" in result.stdout
 
         # Verify server was added to config
         mcp_json = temp_git_repo / ".cxk" / "mcp.json"
@@ -143,10 +130,7 @@ class TestCLI:
         )
 
         assert result.returncode == 0
-        assert (
-            "Added stdio server 'test-stdio' with command: python -m server"
-            in result.stdout
-        )
+        assert "Added stdio server 'test-stdio' with command: python -m server" in result.stdout
 
         # Verify server was added to config
         mcp_json = temp_git_repo / ".cxk" / "mcp.json"
@@ -183,14 +167,8 @@ class TestCLI:
         )
 
         assert result.returncode == 0
-        assert (
-            "Added stdio server 'test-stdio-env' with command: node server.js"
-            in result.stdout
-        )
-        assert (
-            "Environment variables: {'API_KEY': 'test123', 'DEBUG': 'true'}"
-            in result.stdout
-        )
+        assert "Added stdio server 'test-stdio-env' with command: node server.js" in result.stdout
+        assert "Environment variables: {'API_KEY': 'test123', 'DEBUG': 'true'}" in result.stdout
 
         # Verify server was added to config
         mcp_json = temp_git_repo / ".cxk" / "mcp.json"
@@ -229,15 +207,11 @@ class TestCLI:
         assert init_result.returncode == 0
 
         # Add first server
-        result1 = self.run_cli(
-            ["mcp", "add-sse", "duplicate", "http://example.com/1"], cwd=temp_git_repo
-        )
+        result1 = self.run_cli(["mcp", "add-sse", "duplicate", "http://example.com/1"], cwd=temp_git_repo)
         assert result1.returncode == 0
 
         # Try to add server with same name
-        result2 = self.run_cli(
-            ["mcp", "add-sse", "duplicate", "http://example.com/2"], cwd=temp_git_repo
-        )
+        result2 = self.run_cli(["mcp", "add-sse", "duplicate", "http://example.com/2"], cwd=temp_git_repo)
         assert result2.returncode != 0
         assert "Server 'duplicate' already exists" in result2.stderr
 
@@ -263,10 +237,7 @@ class TestCLI:
         )
 
         assert result.returncode != 0
-        assert (
-            "Invalid environment variable format: INVALID_FORMAT. Use KEY=VALUE format."
-            in result.stderr
-        )
+        assert "Invalid environment variable format: INVALID_FORMAT. Use KEY=VALUE format." in result.stderr
 
     def test_mcp_add_server_preserves_existing(self, temp_git_repo):
         """Test that adding a new server preserves existing servers."""
@@ -275,15 +246,11 @@ class TestCLI:
         assert init_result.returncode == 0
 
         # Add first server
-        result1 = self.run_cli(
-            ["mcp", "add-sse", "server1", "http://example.com/1"], cwd=temp_git_repo
-        )
+        result1 = self.run_cli(["mcp", "add-sse", "server1", "http://example.com/1"], cwd=temp_git_repo)
         assert result1.returncode == 0
 
         # Add second server
-        result2 = self.run_cli(
-            ["mcp", "add-stdio", "server2", "--", "python", "server.py"], cwd=temp_git_repo
-        )
+        result2 = self.run_cli(["mcp", "add-stdio", "server2", "--", "python", "server.py"], cwd=temp_git_repo)
         assert result2.returncode == 0
 
         # Verify both servers exist in config
@@ -396,3 +363,82 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         result = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
 
         assert result.returncode != 0
+
+    def test_create_spec_with_output_file(self, temp_non_git_dir):
+        """Test create-spec with --output flag saves to file."""
+        # Create a test template with variables
+        template_content = """Hello {{ name }}!
+Your age is {{ age }} and you live in {{ city }}."""
+        template_file = temp_non_git_dir / "output_test_template.j2"
+        template_file.write_text(template_content)
+
+        # Define output file
+        output_file = temp_non_git_dir / "rendered_spec.md"
+
+        # Run create-spec command with --output flag
+        result = self.run_cli(["create-spec", str(template_file), "--output", str(output_file)], use_test_runner=True)
+
+        assert result.returncode == 0
+        assert f"Rendered template saved to: {output_file}" in result.stdout
+
+        # Verify file was created and contains expected content
+        assert output_file.exists()
+        content = output_file.read_text()
+        assert "Hello John!" in content
+        assert "Your age is 25 and you live in New York." in content
+
+    def test_create_spec_output_file_relative_path(self, temp_non_git_dir):
+        """Test create-spec with --output using relative path."""
+        # Create a test template
+        template_content = "Template for {{ username }}"
+        template_file = temp_non_git_dir / "relative_output_template.j2"
+        template_file.write_text(template_content)
+
+        # Run create-spec command with relative output path
+        result = self.run_cli(
+            ["create-spec", str(template_file), "--output", "output.md"], cwd=temp_non_git_dir, use_test_runner=True
+        )
+
+        assert result.returncode == 0
+
+        # Verify file was created with absolute path in message
+        output_file = temp_non_git_dir / "output.md"
+        assert f"Rendered template saved to: {output_file.resolve()}" in result.stdout
+        assert output_file.exists()
+        assert "Template for testuser" in output_file.read_text()
+
+    def test_create_spec_stdout_vs_file_output(self, temp_non_git_dir):
+        """Test that stdout and file output contain the same content."""
+        # Create a test template
+        template_content = "Hello {{ name }}! You are {{ age }} years old."
+        template_file = temp_non_git_dir / "comparison_template.j2"
+        template_file.write_text(template_content)
+
+        # Run without --output (stdout)
+        result_stdout = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
+
+        # Extract rendered content from stdout
+        stdout_lines = result_stdout.stdout.split("\n")
+        rendered_start = False
+        stdout_content = []
+        for line in stdout_lines:
+            if line == "Rendered template:":
+                rendered_start = True
+                continue
+            elif rendered_start:
+                stdout_content.append(line)
+        stdout_rendered = "\n".join(stdout_content).strip()
+
+        # Run with --output (file)
+        output_file = temp_non_git_dir / "comparison_output.md"
+        result_file = self.run_cli(
+            ["create-spec", str(template_file), "--output", str(output_file)], use_test_runner=True
+        )
+
+        assert result_stdout.returncode == 0
+        assert result_file.returncode == 0
+
+        # Compare content
+        file_content = output_file.read_text().strip()
+        assert stdout_rendered == file_content
+        assert "Hello John! You are 25 years old." in file_content
