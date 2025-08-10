@@ -1,36 +1,126 @@
-import os
+from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, meta, select_autoescape
+from jinja2 import Environment, FileSystemLoader, Template, meta, select_autoescape
 
 
 class TemplateParseError(Exception):
+    """Raised when template parsing fails"""
+
     pass
 
 
 class TemplateEngine:
-    """Abstract away the jinja2 template engine"""
+    """Abstract away the jinja2 template engine with clean factory methods"""
 
-    def __init__(self, template_path: str):
-        template_dir = os.path.dirname(template_path)
-        template_name = os.path.basename(template_path)
+    def __init__(
+        self, env: Environment, template: Template, source_path: Path | None = None, source_string: str | None = None
+    ):
+        """Private constructor - use from_file() or from_string() instead"""
+        self.env = env
+        self.template = template
+        self._source_path = source_path
+        self._source_string = source_string
 
-        self.env = Environment(
-            loader=FileSystemLoader(template_dir),
+    @classmethod
+    def from_file(cls, path: str | Path) -> "TemplateEngine":
+        """Create a TemplateEngine from a template file.
+
+        Args:
+            path: Path to the template file
+
+        Returns:
+            TemplateEngine instance
+
+        Raises:
+            FileNotFoundError: If template file doesn't exist
+            TemplateParseError: If template parsing fails
+        """
+        path = Path(path)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Template file not found: {path}")
+
+        template_dir = path.parent
+        template_name = path.name
+
+        env = Environment(
+            loader=FileSystemLoader(str(template_dir)),
             autoescape=select_autoescape(),
             enable_async=True,
         )
-        self.template = self.env.get_template(template_name)
-        self.template_path = template_path
-
-    def get_variables(self) -> set[str]:
-        """Get the free variables in the template"""
-
-        with open(self.template_path, encoding="utf-8") as f:
-            template_source = f.read()
 
         try:
-            ast = self.env.parse(template_source)
+            template = env.get_template(template_name)
+        except Exception as e:
+            raise TemplateParseError(f"Failed to load template from {path}: {e}") from e
+
+        return cls(env=env, template=template, source_path=path, source_string=None)
+
+    @classmethod
+    def from_string(cls, template_string: str, name: str = "<stdio>") -> "TemplateEngine":
+        """Create a TemplateEngine from a template string.
+
+        Args:
+            template_string: The template content as a string
+            name: Optional name for the template (for debugging)
+
+        Returns:
+            TemplateEngine instance
+
+        Raises:
+            TemplateParseError: If template parsing fails
+        """
+
+        env = Environment(
+            autoescape=select_autoescape(),
+            enable_async=True,
+        )
+
+        try:
+            template = env.from_string(template_string)
+        except Exception as e:
+            raise TemplateParseError(f"Failed to parse template string: {e}") from e
+
+        # Store the name in the template for better error messages
+        template.name = name
+
+        return cls(env=env, template=template, source_path=None, source_string=template_string)
+
+    @property
+    def source(self) -> str:
+        """Get the template source content."""
+        if self._source_string is not None:
+            return self._source_string
+
+        if self._source_path is not None:
+            with open(self._source_path, encoding="utf-8") as f:
+                return f.read()
+
+        # Should not reach here with proper factory method usage
+        raise RuntimeError("No template source available")
+
+    @property
+    def path(self) -> Path | None:
+        """Get the template file path if loaded from file."""
+        return self._source_path
+
+    @property
+    def is_from_file(self) -> bool:
+        """Check if template was loaded from a file."""
+        return self._source_path is not None
+
+    def get_variables(self) -> set[str]:
+        """Get the free (undeclared) variables in the template.
+
+        Returns:
+            Set of variable names that are referenced but not defined in the template
+
+        Raises:
+            TemplateParseError: If template parsing fails
+        """
+        try:
+            ast = self.env.parse(self.source)
         except Exception as e:
             raise TemplateParseError(f"Failed to parse template: {e}") from e
 
@@ -40,3 +130,10 @@ class TemplateEngine:
 
     async def render_async(self, *args: Any, **kwargs: Any) -> str:
         return await self.template.render_async(*args, **kwargs)
+
+    def __repr__(self) -> str:
+        if self._source_path:
+            return f"TemplateEngine(from_file={self._source_path})"
+        else:
+            name = self.template.name if hasattr(self.template, "name") else "<stdio>"
+            return f"TemplateEngine(from_string, name={name})"

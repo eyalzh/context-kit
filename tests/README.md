@@ -23,3 +23,8 @@ uv run cxk.py create-spec tests/templates/spec1.md --var additional_context=aa -
 ```
 uv run cxk.py create-spec tests/templates/spec1.md --verbose --var additional_context=1 --var ticket='{"id":1}' --output res.md
 ```
+
+### Piped
+```
+cat tests/templates/spec1.md | uv run cxk.py create-spec --verbose --var ticket='{"id":1}' --var additional_context=2
+```

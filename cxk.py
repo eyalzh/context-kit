@@ -23,7 +23,7 @@ async def main():
 
     # cxk create-spec [spec-template]
     create_spec_parser = subparsers.add_parser("create-spec", help="Create spec from template")
-    create_spec_parser.add_argument("spec_template", help="Path to the spec template file")
+    create_spec_parser.add_argument("spec_template", nargs=argparse.OPTIONAL, help="Path to the spec template file")
     create_spec_parser.add_argument("--output", help="Output file path (defaults to stdout if not specified)")
     create_spec_parser.add_argument("--var", action="append", help="Set template variable value (format: key=value)")
     create_spec_parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
