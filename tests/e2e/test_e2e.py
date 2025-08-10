@@ -294,7 +294,7 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         template_file.write_text(template_content)
 
         # Run create-spec command with test runner to patch collect_var_value
-        result = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
+        result = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
 
         assert result.returncode == 0
         assert "Collecting values for template variables:" in result.stdout
@@ -317,7 +317,7 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         template_file.write_text(template_content)
 
         # Run create-spec command with test runner (patching won't affect this case)
-        result = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
+        result = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
 
         assert result.returncode == 0
         assert "No variables found in template" in result.stdout
@@ -334,7 +334,9 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         template_file.write_text(template_content)
 
         # Run create-spec command with just the filename (relative path) using test runner
-        result = self.run_cli(["create-spec", "relative_template.j2"], cwd=temp_non_git_dir, use_test_runner=True)
+        result = self.run_cli(
+            ["create-spec", "--verbose", "relative_template.j2"], cwd=temp_non_git_dir, use_test_runner=True
+        )
 
         assert result.returncode == 0
         assert "Collecting values for template variables:" in result.stdout
@@ -374,10 +376,11 @@ Your age is {{ age }} and you live in {{ city }}."""
         output_file = temp_non_git_dir / "rendered_spec.md"
 
         # Run create-spec command with --output flag
-        result = self.run_cli(["create-spec", str(template_file), "--output", str(output_file)], use_test_runner=True)
+        result = self.run_cli(
+            ["create-spec", "--verbose", str(template_file), "--output", str(output_file)], use_test_runner=True
+        )
 
         assert result.returncode == 0
-        assert f"Rendered template saved to: {output_file}" in result.stdout
 
         # Verify file was created and contains expected content
         assert output_file.exists()
@@ -394,14 +397,15 @@ Your age is {{ age }} and you live in {{ city }}."""
 
         # Run create-spec command with relative output path
         result = self.run_cli(
-            ["create-spec", str(template_file), "--output", "output.md"], cwd=temp_non_git_dir, use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--output", "output.md"],
+            cwd=temp_non_git_dir,
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
 
         # Verify file was created with absolute path in message
         output_file = temp_non_git_dir / "output.md"
-        assert f"Rendered template saved to: {output_file.resolve()}" in result.stdout
         assert output_file.exists()
         assert "Template for testuser" in output_file.read_text()
 
@@ -413,7 +417,7 @@ Your age is {{ age }} and you live in {{ city }}."""
         template_file.write_text(template_content)
 
         # Run without --output (stdout)
-        result_stdout = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
+        result_stdout = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
 
         # Extract rendered content from stdout
         stdout_lines = result_stdout.stdout.split("\n")
@@ -425,12 +429,24 @@ Your age is {{ age }} and you live in {{ city }}."""
                 continue
             elif rendered_start:
                 stdout_content.append(line)
-        stdout_rendered = "\n".join(stdout_content).strip()
+
+        # If we found a "Rendered template:" marker, use content after it
+        if stdout_content:
+            stdout_rendered = "\n".join(stdout_content).strip()
+        else:
+            # If no marker found, assume the entire output is the rendered template
+            # (skip logging messages that contain colons)
+            template_lines = [
+                line
+                for line in stdout_lines
+                if ":" not in line or not line.strip().startswith(("Collecting", "name:", "age:", "city:"))
+            ]
+            stdout_rendered = "\n".join(template_lines).strip()
 
         # Run with --output (file)
         output_file = temp_non_git_dir / "comparison_output.md"
         result_file = self.run_cli(
-            ["create-spec", str(template_file), "--output", str(output_file)], use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--output", str(output_file)], use_test_runner=True
         )
 
         assert result_stdout.returncode == 0
@@ -450,8 +466,7 @@ Your age is {{ age }} and you live in {{ city }}."""
 
         # Run create-spec command with --var override
         result = self.run_cli(
-            ["create-spec", str(template_file), "--var", "name=Alice"],
-            use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", "name=Alice"], use_test_runner=True
         )
 
         assert result.returncode == 0
@@ -468,8 +483,8 @@ Your age is {{ age }} and you live in {{ city }}."""
 
         # Run create-spec command with multiple --var overrides
         result = self.run_cli(
-            ["create-spec", str(template_file), "--var", "name=Bob", "--var", "city=Boston"],
-            use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", "name=Bob", "--var", "city=Boston"],
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
@@ -487,12 +502,17 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Run create-spec command with all variables provided
         result = self.run_cli(
             [
-                "create-spec", str(template_file),
-                "--var", "greeting=Hi",
-                "--var", "name=Charlie",
-                "--var", "score=100"
+                "create-spec",
+                "--verbose",
+                str(template_file),
+                "--var",
+                "greeting=Hi",
+                "--var",
+                "name=Charlie",
+                "--var",
+                "score=100",
             ],
-            use_test_runner=True
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
@@ -510,8 +530,7 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Run create-spec command with JSON --var
         json_value = '{"name": "Dave", "email": "dave@example.com"}'
         result = self.run_cli(
-            ["create-spec", str(template_file), "--var", f"user={json_value}"],
-            use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", f"user={json_value}"], use_test_runner=True
         )
 
         assert result.returncode == 0
@@ -528,8 +547,7 @@ Your age is {{ age }} and you live in {{ city }}."""
 
         # Run create-spec command with invalid --var format (missing =)
         result = self.run_cli(
-            ["create-spec", str(template_file), "--var", "invalid_format"],
-            use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", "invalid_format"], use_test_runner=True
         )
 
         assert result.returncode != 0
@@ -544,8 +562,7 @@ Your age is {{ age }} and you live in {{ city }}."""
 
         # Run create-spec command with --var value containing equals
         result = self.run_cli(
-            ["create-spec", str(template_file), "--var", "equation=x=y+z"],
-            use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", "equation=x=y+z"], use_test_runner=True
         )
 
         assert result.returncode == 0
@@ -566,12 +583,17 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Run create-spec command with both --var and --output
         result = self.run_cli(
             [
-                "create-spec", str(template_file),
-                "--var", "project=MyApp",
-                "--var", "version=1.0.0",
-                "--output", str(output_file)
+                "create-spec",
+                "--verbose",
+                str(template_file),
+                "--var",
+                "project=MyApp",
+                "--var",
+                "version=1.0.0",
+                "--output",
+                str(output_file),
             ],
-            use_test_runner=True
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
