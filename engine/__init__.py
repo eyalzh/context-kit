@@ -98,7 +98,7 @@ class TemplateEngine:
                 return f.read()
 
         # Should not reach here with proper factory method usage
-        raise RuntimeError("No template source available")
+        raise AssertionError("No template source available")
 
     @property
     def path(self) -> Path | None:

@@ -43,10 +43,7 @@ async def handle_create_spec(
 
         template_engine = TemplateEngine.from_string(template_str)
     else:
-        if stdin_piped:
-            logging.error("Error: No data received on stdin for template")
-        else:
-            logging.error("Error: Missing spec_template argument (or provide template via stdin)")
+        logging.error("Error: Missing spec_template argument (or provide template via stdin)")
         sys.exit(1)
 
     try:
