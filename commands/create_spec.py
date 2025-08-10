@@ -6,7 +6,7 @@ from engine import TemplateEngine, TemplateParseError
 from prompt import collect_var_value
 
 
-async def handle_create_spec(spec_template: str, output_file: str | None = None):
+async def handle_create_spec(spec_template: str, output_file: str | None = None, var_overrides: list[str] | None = None):
     """Handle the create-spec command"""
 
     # Resolve relative paths against current working directory
@@ -24,13 +24,27 @@ async def handle_create_spec(spec_template: str, output_file: str | None = None)
         # Get variables from template
         variables = template_engine.get_variables()
 
+        # Parse var_overrides into a dictionary
+        provided_vars = {}
+        if var_overrides:
+            for var_override in var_overrides:
+                if '=' not in var_override:
+                    print(f"Error: Invalid variable format '{var_override}'. Use KEY=VALUE format.", file=sys.stderr)
+                    sys.exit(1)
+                key, value = var_override.split('=', 1)
+                provided_vars[key] = value
+
         # Collect values for each variable
         collected_vars = {}
         if variables:
             print("Collecting values for template variables:")
             for var in sorted(variables):
-                raw_value = await collect_var_value(var)
-                print(f"  {var}: {raw_value}")
+                if var in provided_vars:
+                    raw_value = provided_vars[var]
+                    print(f"  {var}: {raw_value}")
+                else:
+                    raw_value = await collect_var_value(var)
+                    print(f"  {var}: {raw_value}")
 
                 # Try to parse as JSON if it looks like JSON
                 if raw_value and (raw_value.strip().startswith('{') or raw_value.strip().startswith('[')):

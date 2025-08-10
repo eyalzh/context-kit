@@ -25,6 +25,7 @@ async def main():
     create_spec_parser = subparsers.add_parser("create-spec", help="Create spec from template")
     create_spec_parser.add_argument("spec_template", help="Path to the spec template file")
     create_spec_parser.add_argument("--output", help="Output file path (defaults to stdout if not specified)")
+    create_spec_parser.add_argument("--var", action="append", help="Set template variable value (format: key=value)")
 
     # cxk mcp
     mcp_parser = subparsers.add_parser("mcp", help="Manage MCP servers")
@@ -59,7 +60,7 @@ async def main():
             await handle_init(state)
 
         elif args.command == "create-spec":
-            await handle_create_spec(args.spec_template, args.output)
+            await handle_create_spec(args.spec_template, args.output, args.var)
 
         elif args.command == "mcp":
             if not args.mcp_command:
