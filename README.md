@@ -32,7 +32,7 @@ You can also filter resources to mask sensitive information:
 ```
 ## Support ticket
 {% set support_ticket_info = mcp('support', 'getTicket', 'ACME-9912') %}
-{{ support_ticket_info | regex_replace(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL_REDACTED]') }}
+{{ support_ticket_info | regex_replace(r'\b[\w.+-]+@[\w.-]+\.\w+\b', '[EMAIL_REDACTED]') }}
 ```
 
 ### Initialize a project
