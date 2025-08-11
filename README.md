@@ -33,7 +33,7 @@ sequenceDiagram
     
     alt MCP resource partially specified
         CK->>Dev: Prompt for additional arguments
-        Note right of CK: Request missing parameters<br/>or clarification
+        Note right of CK: Request missing parameters
         Dev-->>CK: Provide required arguments
         CK->>MCP: Make additional MCP calls with complete info
         MCP-->>CK: Return complete resource data
