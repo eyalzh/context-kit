@@ -17,7 +17,23 @@ TBD (show template, generation of two specs, and the spec files)
 
 ## Usage
 
+## Filtering context
 
+MCP resources can quickly oversaturate the context. With the template engine, you can apply filters and selectors to include only relevant parts of resources. For example:
+
+```
+## Ticket description
+{% set ticket_info = mcp('jira', 'getJiraIssue', {'issueKey': 'ACME-4432'}) %}
+{{ ticket_info.fields.description }}
+```
+
+You can also filter resources to mask sensitive information:
+
+```
+## Support ticket
+{% set support_ticket_info = mcp('support', 'getTicket', 'ACME-9912') %}
+{{ support_ticket_info | regex_replace(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL_REDACTED]') }}
+```
 
 ### Initialize a project
 ```
