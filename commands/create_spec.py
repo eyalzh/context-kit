@@ -4,17 +4,21 @@ import os
 import sys
 
 from engine import TemplateEngine, TemplateParseError
-from prompt import collect_var_value
+from prompt import PromptHelper
+from state import State
 
 
 async def handle_create_spec(
     spec_template: str | None,
+    state: State,
     output_file: str | None = None,
     var_overrides: list[str] | None = None,
     verbose: bool = False,
 ):
     log_level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=log_level, format="%(message)s", force=True)
+
+    prompt_helper = PromptHelper(state)
 
     # Detect piped input (stdin not a TTY) and ensure there's data before using it
     stdin_piped = not sys.stdin.isatty()
@@ -30,7 +34,7 @@ async def handle_create_spec(
             logging.error(f"Error: Template file '{spec_template}' not found")
             sys.exit(1)
 
-        template_engine = TemplateEngine.from_file(template_path)
+        template_engine = TemplateEngine.from_file(template_path, state, prompt_helper)
     elif stdin_piped:
         try:
             template_str = sys.stdin.read()
@@ -41,7 +45,7 @@ async def handle_create_spec(
             logging.error("Error: No data received on stdin for template")
             sys.exit(1)
 
-        template_engine = TemplateEngine.from_string(template_str)
+        template_engine = TemplateEngine.from_string(template_str, state, prompt_helper)
     else:
         logging.error("Error: Missing spec_template argument (or provide template via stdin)")
         sys.exit(1)
@@ -68,7 +72,7 @@ async def handle_create_spec(
                     raw_value = provided_vars[var]
 
                 else:
-                    raw_value = await collect_var_value(var)
+                    raw_value = await prompt_helper.collect_var_value(var)
                 logging.info(f"  {var}: {raw_value}")
 
                 # Try to parse as JSON if it looks like JSON

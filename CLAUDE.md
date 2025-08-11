@@ -15,7 +15,7 @@ ContextKit is a CLI tool and MCP (Model Context Protocol) client for creating sp
   - `mcp.py` - MCP server management (add-sse, add-stdio, add-http)
   - `create_spec.py` - Template rendering with variable collection
 - **Template engine**: `engine/` - Jinja2-based template processing
-- **MCP configuration**: `util/mcp/config.py` - Pydantic models for MCP server configs
+- **MCP configuration**: `mcp_client/config.py` - Pydantic models for MCP server configs
 - **User prompts**: `prompt/` - Interactive variable collection
 
 ## Core Concepts

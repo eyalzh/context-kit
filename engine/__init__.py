@@ -3,6 +3,10 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template, meta, select_autoescape
 
+from engine.globals import create_mcp_tool_function
+from prompt import PromptHelper
+from state import State
+
 
 class TemplateParseError(Exception):
     """Raised when template parsing fails"""
@@ -14,20 +18,32 @@ class TemplateEngine:
     """Abstract away the jinja2 template engine with clean factory methods"""
 
     def __init__(
-        self, env: Environment, template: Template, source_path: Path | None = None, source_string: str | None = None
+        self,
+        env: Environment,
+        template: Template,
+        state: State,
+        prompt_helper: PromptHelper,
+        source_path: Path | None = None,
+        source_string: str | None = None,
     ):
         """Private constructor - use from_file() or from_string() instead"""
         self.env = env
         self.template = template
         self._source_path = source_path
         self._source_string = source_string
+        self._state = state
+        self._prompt_helper = prompt_helper
+
+        # Add global functions to env
+        self.env.globals["mcp"] = create_mcp_tool_function(self._state, self._prompt_helper)
 
     @classmethod
-    def from_file(cls, path: str | Path) -> "TemplateEngine":
+    def from_file(cls, path: str | Path, state: State, prompt_helper: PromptHelper) -> "TemplateEngine":
         """Create a TemplateEngine from a template file.
 
         Args:
             path: Path to the template file
+            state: State object containing project configuration
 
         Returns:
             TemplateEngine instance
@@ -55,14 +71,19 @@ class TemplateEngine:
         except Exception as e:
             raise TemplateParseError(f"Failed to load template from {path}: {e}") from e
 
-        return cls(env=env, template=template, source_path=path, source_string=None)
+        return cls(
+            env=env, template=template, state=state, source_path=path, source_string=None, prompt_helper=prompt_helper
+        )
 
     @classmethod
-    def from_string(cls, template_string: str, name: str = "<stdio>") -> "TemplateEngine":
+    def from_string(
+        cls, template_string: str, state: State, prompt_helper: PromptHelper, name: str = "<stdio>"
+    ) -> "TemplateEngine":
         """Create a TemplateEngine from a template string.
 
         Args:
             template_string: The template content as a string
+            state: State object containing project configuration
             name: Optional name for the template (for debugging)
 
         Returns:
@@ -85,7 +106,14 @@ class TemplateEngine:
         # Store the name in the template for better error messages
         template.name = name
 
-        return cls(env=env, template=template, source_path=None, source_string=template_string)
+        return cls(
+            env=env,
+            template=template,
+            state=state,
+            source_path=None,
+            source_string=template_string,
+            prompt_helper=prompt_helper,
+        )
 
     @property
     def source(self) -> str:

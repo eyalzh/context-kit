@@ -61,7 +61,7 @@ async def main():
             await handle_init(state)
 
         elif args.command == "create-spec":
-            await handle_create_spec(args.spec_template, args.output, args.var, args.verbose)
+            await handle_create_spec(args.spec_template, state, args.output, args.var, args.verbose)
 
         elif args.command == "mcp":
             if not args.mcp_command:

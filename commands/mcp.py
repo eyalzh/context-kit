@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from state import State
-from util.mcp.config import SSEServerConfig, StdioServerConfig
+from mcp_client.config import SSEServerConfig, StdioServerConfig
 
 
 class MCPAddSSEContext(BaseModel):

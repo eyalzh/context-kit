@@ -610,7 +610,7 @@ Your age is {{ age }} and you live in {{ city }}."""
                 "create-spec",
                 "--verbose",
                 "--var",
-                "ticket={\"id\":1}",
+                'ticket={"id":1}',
                 "--var",
                 "additional_context=test context",
             ],
