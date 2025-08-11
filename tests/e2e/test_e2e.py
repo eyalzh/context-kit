@@ -35,7 +35,7 @@ class TestCLI:
         with tempfile.TemporaryDirectory() as temp_dir:
             yield Path(temp_dir)
 
-    def run_cli(self, args, cwd=None, use_test_runner=False):
+    def run_cli(self, args, cwd=None, use_test_runner=False, input: str | None = None):
         """Run the CLI and return result."""
         if use_test_runner:
             # Use test runner that patches collect_var_value
@@ -46,7 +46,7 @@ class TestCLI:
 
         cmd = ["python", str(cli_path)] + args
 
-        result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+        result = subprocess.run(cmd, cwd=cwd, input=input, capture_output=True, text=True)
         return result
 
     def test_init_in_git_repo(self, temp_git_repo):
@@ -595,3 +595,64 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert output_file.exists()
         content = output_file.read_text()
         assert "Project: MyApp, Version: 1.0.0" in content
+
+    def test_create_spec_pipe_mode(self, temp_non_git_dir):
+        """Test create-spec with stdin pipe mode (no template file argument)."""
+        # Template content to pipe via stdin
+        template_content = (
+            "# Task Template\n\n## Ticket description\n\n{{ ticket.id }}\n\n{{ ticket.description }}\n\n"
+            "## Additional context\n\n{{ additional_context }}"
+        )
+
+        # Run create-spec command without template file argument, piping template via stdin
+        result = self.run_cli(
+            [
+                "create-spec",
+                "--verbose",
+                "--var",
+                "ticket={\"id\":1}",
+                "--var",
+                "additional_context=test context",
+            ],
+            cwd=temp_non_git_dir,
+            input=template_content,
+        )
+
+        assert result.returncode == 0
+
+        # Verify rendered template output contains expected content
+        assert "# Task Template" in result.stdout
+        assert "## Ticket description" in result.stdout
+        assert "1" in result.stdout  # ticket.id
+        assert "## Additional context" in result.stdout
+        assert "test context" in result.stdout
+
+    def test_create_spec_pipe_mode_with_output_file(self, temp_non_git_dir):
+        """Test create-spec with stdin pipe mode and --output flag."""
+        # Template content to pipe via stdin
+        template_content = "Piped template: {{ message }}"
+
+        # Define output file
+        output_file = temp_non_git_dir / "piped_output.md"
+
+        # Run create-spec command with stdin and --output
+        result = self.run_cli(
+            [
+                "create-spec",
+                "--verbose",
+                "--var",
+                "message=Hello from pipe!",
+                "--output",
+                str(output_file),
+            ],
+            cwd=temp_non_git_dir,
+            input=template_content,
+        )
+
+        assert result.returncode == 0
+        assert f"Rendered template saved to: {output_file}" in result.stderr
+
+        # Verify file was created and contains expected content
+        assert output_file.exists()
+        content = output_file.read_text()
+        assert "Piped template: Hello from pipe!" in content
