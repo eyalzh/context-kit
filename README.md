@@ -8,6 +8,53 @@ By being an MCP client, ContextKit utilizes the evolving MCP ecosystem to inject
 
 If a context variable can be fulfilled by fetching an MCP resource, then it will be automatically fetched and injected into the spec file when generating the spec. If the context variable is a partial MCP resource, the user will be prompted to complete it before the spec file is generated. Usually the missing arguments in the MCP resource or tool are task-specific, such as a ticket ID or a Figma URL.
 
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant CK as ContextKit
+    participant MCP as MCP Resources
+    participant AI as Coding AI Agent
+
+    Note over Dev, AI: ContextKit MCP Configuration
+
+    Dev->>CK: Add MCP configuration
+    
+    Note right of CK: Configuration includes<br/>MCP server endpoints,<br/>commands, env, etc.
+
+    Note over Dev, AI: Spec creation workflow
+
+    activate CK
+    Dev->>CK: Send template spec file + create-spec request
+    Note right of Dev: Template contains partial<br/>spec definitions
+
+    CK->>MCP: Make MCP calls to gather resource info
+    activate MCP
+    MCP-->>CK: Return resource data
+    
+    alt MCP resource partially specified
+        CK->>Dev: Prompt for additional arguments
+        Note right of CK: Request missing parameters<br/>or clarification
+        Dev-->>CK: Provide required arguments
+        CK->>MCP: Make additional MCP calls with complete info
+        MCP-->>CK: Return complete resource data
+    end
+    
+    deactivate MCP
+    
+    CK->>CK: Process and generate complete spec
+    Note right of CK: Combine template,<br/>MCP data, and user input
+
+    CK-->>Dev: Return generated spec
+    deactivate CK
+    Note left of CK: Complete specification<br/>ready for use
+
+    Note over Dev, AI: Using the spec against a coding agent
+
+    Dev->>AI: Use spec as context for coding tasks
+    activate AI
+    deactivate AI
+```
+
 ## Real world example
 TBD (show template, generation of two specs, and the spec files)
 
