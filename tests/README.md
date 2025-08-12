@@ -53,3 +53,8 @@ uv run cxk.py create-spec tests/templates/spec3.md --var additional_context=aa
 ```
 uv run cxk.py create-spec tests/templates/spec4.md --var ticket_id=ACME-123
 ```
+
+### With MCP resources:
+```
+uv run cxk.py create-spec tests/templates/spec5.md
+```

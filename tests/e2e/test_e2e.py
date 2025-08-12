@@ -690,7 +690,7 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert result.returncode == 0
 
         # Verify that MCP tool was called and returned expected data
-        # The template uses: mcp('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'})
+        # The template uses: call_tool('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'})
         # The jsonTest tool returns: {"id": "1234 - ACME-123", "summary": "Summary for ACME-123",
         # "description": "This is a mock Jira ticket description."}
 
@@ -724,8 +724,8 @@ Your age is {{ age }} and you live in {{ city }}."""
 
         # Run create-spec command with test runner and additional_context variable
         # The template has:
-        # - mcp('test-mcp', 'jsonTest', {'cloudId': '1234'}) - missing 'ticketId' parameter
-        # - mcp('test-mcp', 'add', {'a': 5}) - missing 'b' parameter
+        # - call_tool('test-mcp', 'jsonTest', {'cloudId': '1234'}) - missing 'ticketId' parameter
+        # - call_tool('test-mcp', 'add', {'a': 5}) - missing 'b' parameter
         result = self.run_cli(
             [
                 "create-spec",

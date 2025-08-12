@@ -35,7 +35,7 @@ class TemplateEngine:
         self._prompt_helper = prompt_helper
 
         # Add global functions to env
-        self.env.globals["mcp"] = create_mcp_tool_function(self._state, self._prompt_helper)
+        self.env.globals["call_tool"] = create_mcp_tool_function(self._state, self._prompt_helper)
 
     @classmethod
     def from_file(cls, path: str | Path, state: State, prompt_helper: PromptHelper) -> "TemplateEngine":

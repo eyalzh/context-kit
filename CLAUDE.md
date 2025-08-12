@@ -15,7 +15,7 @@ ContextKit is a CLI tool and MCP (Model Context Protocol) client for creating sp
   - `mcp.py` - MCP server management (add-sse, add-stdio, add-http)
   - `create_spec.py` - Template rendering with variable collection
 - **Template engine**: `engine/` - Jinja2-based template processing with async support and MCP tool integration
-  - `engine/globals.py` - Global Jinja2 functions including `mcp()` for calling MCP tools from templates
+  - `engine/globals.py` - Global Jinja2 functions including `call_tool()` for calling MCP tools from templates
 - **MCP client**: `mcp_client/` - MCP protocol client implementation
   - `mcp_client/config.py` - Pydantic models for MCP server configs (stdio, SSE, HTTP)
   - `mcp_client/client_session_provider.py` - Connection management for MCP servers
@@ -27,7 +27,7 @@ ContextKit is a CLI tool and MCP (Model Context Protocol) client for creating sp
 2. **MCP servers**: Configured via CLI commands, stored in `.cxk/mcp.json`
 3. **Spec templates**: Jinja2 templates with variables that get filled from MCP resources
 4. **Context variables**: Can be automatic MCP resources or user-provided values
-5. **MCP tool functions**: Templates can call MCP tools directly using `{{ mcp('server', 'tool', args) }}` syntax
+5. **MCP tool functions**: Templates can call MCP tools directly using `{{ call_tool('server', 'tool', args) }}` syntax
 
 ## Common Commands
 
