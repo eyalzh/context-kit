@@ -66,7 +66,8 @@ async def mock_collect_tool_input(input_schema, existing_args=None, include_opti
 
 
 if __name__ == "__main__":
-    # Patch both collect_var_value and collect_tool_input before running main
-    with patch("prompt.PromptHelper.collect_var_value", side_effect=mock_collect_var_value), \
-         patch("prompt.PromptHelper.collect_tool_input", side_effect=mock_collect_tool_input):
+    with (
+        patch("prompt.PromptHelper.collect_var_value", side_effect=mock_collect_var_value),
+        patch("prompt.PromptHelper.collect_tool_input", side_effect=mock_collect_tool_input),
+    ):
         asyncio.run(main())
