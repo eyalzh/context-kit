@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import sys
@@ -6,6 +5,7 @@ import sys
 from engine import TemplateEngine, TemplateParseError
 from prompt import PromptHelper
 from state import State
+from util.parse import parse_input_string
 
 
 async def handle_create_spec(
@@ -71,15 +71,8 @@ async def handle_create_spec(
                     raw_value = await prompt_helper.collect_var_value(var)
                 logging.info(f"  {var}: {raw_value}")
 
-                # Try to parse as JSON if it looks like JSON
-                if raw_value and (raw_value.strip().startswith("{") or raw_value.strip().startswith("[")):
-                    try:
-                        collected_vars[var] = json.loads(raw_value)
-                    except json.JSONDecodeError:
-                        # If it's not valid JSON, use as string
-                        collected_vars[var] = raw_value
-                else:
-                    collected_vars[var] = raw_value
+                collected_vars[var] = parse_input_string(raw_value)
+
         else:
             logging.info("No variables found in template")
 

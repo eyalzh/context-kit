@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Any
 
@@ -8,6 +7,7 @@ from mcp.shared.metadata_utils import get_display_name
 from mcp_client.client_session_provider import get_client_session_by_server
 from prompt import PromptHelper
 from state import State
+from util.parse import parse_input_string
 
 
 def create_mcp_tool_function(state: State, prompt_helper: PromptHelper):
@@ -28,14 +28,7 @@ def create_mcp_tool_function(state: State, prompt_helper: PromptHelper):
                 result = await session.call_tool(tool_name, arguments=full_arguments)
                 result_unstructured = result.content[0]
                 if isinstance(result_unstructured, types.TextContent):
-                    # Try to parse the result as JSON
-                    if result_unstructured.text.startswith("{") or result_unstructured.text.startswith("["):
-                        try:
-                            return json.loads(result_unstructured.text)
-                        except json.JSONDecodeError:
-                            logging.error("Failed to parse result as JSON, returning raw text.")
-
-                    return result_unstructured.text
+                    return parse_input_string(result_unstructured.text)
                 else:
                     return ""
             except Exception as e:
