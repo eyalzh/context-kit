@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any
 
 from mcp import types
@@ -13,8 +14,8 @@ def create_mcp_tool_function(state: State, prompt_helper: PromptHelper):
     """Create a call_mcp_tool function with state bound."""
 
     async def call_mcp_tool(server: str, tool_name: str, args: dict) -> str | dict[str, Any]:
-        print(f"Calling MCP tool: {tool_name} on server: {server} with args: {args}")
-        async with get_client_session_by_server(server, state.mcp_config) as session:
+        logging.info(f"Calling MCP tool: {tool_name} on server: {server} with args: {args}")
+        async with get_client_session_by_server(server, state) as session:
             # Initialize the connection
             await session.initialize()
 
@@ -23,7 +24,7 @@ def create_mcp_tool_function(state: State, prompt_helper: PromptHelper):
             try:
                 full_arguments = await prompt_helper.get_full_args(tools, tool_name, args)
 
-                print(f"Full arguments for tool {tool_name}: {full_arguments}")
+                logging.debug(f"Full arguments for tool {tool_name}: {full_arguments}")
                 result = await session.call_tool(tool_name, arguments=full_arguments)
                 result_unstructured = result.content[0]
                 if isinstance(result_unstructured, types.TextContent):
@@ -32,16 +33,16 @@ def create_mcp_tool_function(state: State, prompt_helper: PromptHelper):
                         try:
                             return json.loads(result_unstructured.text)
                         except json.JSONDecodeError:
-                            print("Failed to parse result as JSON, returning raw text.")
+                            logging.error("Failed to parse result as JSON, returning raw text.")
 
                     return result_unstructured.text
                 else:
                     return ""
             except Exception as e:
-                print(f"Error calling tool {tool_name}: {e}")
-                print("Available tools:")
+                logging.error(f"Error calling tool {tool_name}: {e}")
+                logging.error("Available tools:")
                 for tool in tools.tools:
-                    print(f" - {tool.name}: {get_display_name(tool)}")
+                    logging.error(f" - {tool.name}: {get_display_name(tool)}")
                 return ""
 
     return call_mcp_tool

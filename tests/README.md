@@ -11,6 +11,7 @@ uv run pytest
 ```
 uv run cxk.py init
 uv run cxk.py mcp add-stdio server-name2 --env KEY=value -- python server.py
+uv run cxk.py mcp add-stdio test-mcp -- uv run mcp run tests/mcp_test_server.py 
 ```
 
 ```
@@ -35,7 +36,16 @@ uv run cxk.py create-spec tests/templates/spec1.md --verbose --var additional_co
 cat tests/templates/spec1.md | uv run cxk.py create-spec --verbose --var ticket='{"id":1}' --var additional_context=2
 ```
 
-### With MCP functions
+### With MCP function (fully specified)
 ```
-uv run cxk.py create-spec tests/templates/spec2.md
+uv run cxk.py create-spec tests/templates/spec2.md --var additional_context=aa
+```
+
+```
+uv run cxk.py create-spec tests/templates/spec2.md --var additional_context=aa --verbose --output res.md
+```
+
+### With MCP function (partially specified)
+```
+uv run cxk.py create-spec tests/templates/spec3.md --var additional_context=aa
 ```

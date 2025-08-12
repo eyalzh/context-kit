@@ -2,10 +2,11 @@
 
 ## Ticket description
 
-{% set ticket = mcp('jira', 'getJiraIssue', {'issueKey': 'ACME-4432'}) %}
+{% set ticket = mcp('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'}) %}
 
 {{ ticket.id }}
 
+### Description
 {{ ticket.description }}
 
 ## Additional context

@@ -13,11 +13,7 @@ async def handle_create_spec(
     state: State,
     output_file: str | None = None,
     var_overrides: list[str] | None = None,
-    verbose: bool = False,
 ):
-    log_level = logging.DEBUG if verbose else logging.WARNING
-    logging.basicConfig(level=log_level, format="%(message)s", force=True)
-
     prompt_helper = PromptHelper(state)
 
     # Detect piped input (stdin not a TTY) and ensure there's data before using it

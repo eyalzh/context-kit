@@ -1,8 +1,11 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+# Import State type for type hints
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
-from .config import MCPServersConfig, SSEServerConfig, StdioServerConfig
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.auth import OAuthClientProvider, TokenStorage
 from mcp.client.sse import sse_client
@@ -10,6 +13,12 @@ from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
 from pydantic import AnyUrl
+
+from .config import SSEServerConfig, StdioServerConfig
+from .mcp_logger import get_mcp_log_file
+
+if TYPE_CHECKING:
+    from state import State
 
 
 class InMemoryTokenStorage(TokenStorage):
@@ -47,10 +56,11 @@ async def handle_callback() -> tuple[str, str | None]:
 
 
 @asynccontextmanager
-async def get_stdio_session(server_params: StdioServerParameters):
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            yield session
+async def get_stdio_session(server_params: StdioServerParameters, config_dir: Path | None = None):
+    with get_mcp_log_file(config_dir) as errlog:
+        async with stdio_client(server_params, errlog=errlog) as (read, write):
+            async with ClientSession(read, write) as session:
+                yield session
 
 
 @asynccontextmanager
@@ -85,7 +95,7 @@ async def get_sse_session(server_url: str):
         server_url=server_url,
         client_metadata=OAuthClientMetadata(
             client_name="Example MCP Client",
-            redirect_uris=[AnyUrl("http://localhost:3000/callback")],
+            redirect_uris=[AnyUrl("http://localhost:41008/callback")],
             grant_types=["authorization_code", "refresh_token"],
             response_types=["code"],
             scope="user",
@@ -107,11 +117,9 @@ async def get_sse_session(server_url: str):
 
 
 @asynccontextmanager
-async def get_client_session_by_server(
-    server_name: str, mcp_servers_config: MCPServersConfig
-) -> AsyncGenerator[ClientSession, None]:
+async def get_client_session_by_server(server_name: str, state: "State") -> AsyncGenerator[ClientSession, None]:
     # Find the server configuration by name
-    server_config = mcp_servers_config.mcpServers.get(server_name)
+    server_config = state.mcp_config.mcpServers.get(server_name)
     if not server_config:
         raise ValueError(f"Server '{server_name}' not found in configuration.")
     if isinstance(server_config, StdioServerConfig):
@@ -120,7 +128,8 @@ async def get_client_session_by_server(
                 command=server_config.command,
                 args=server_config.args or [],
                 env=server_config.env,
-            )
+            ),
+            config_dir=state.config_dir,
         ) as session:
             yield session
     elif isinstance(server_config, SSEServerConfig):

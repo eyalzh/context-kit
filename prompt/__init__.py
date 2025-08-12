@@ -1,6 +1,7 @@
-from typing import TYPE_CHECKING
+import logging
 
 import questionary
+
 from state import State
 
 # Add interactive prompt helpers using questionary that will collect values for
@@ -8,7 +9,6 @@ from state import State
 
 
 class PromptHelper:
-
     def __init__(
         self,
         state: State,
@@ -77,7 +77,7 @@ class PromptHelper:
             if field_name in existing_args:
                 continue
 
-            print(f"Collecting input for field: {field_info}")
+            logging.info(f"Collecting input for field: {field_info}")
             title = field_info["title"] if "title" in field_info else field_name
             field_type = field_info["type"] if "type" in field_info else "string"
             field_desc = field_info.get("description", None)
