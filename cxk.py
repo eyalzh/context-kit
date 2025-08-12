@@ -57,48 +57,43 @@ async def main():
 
     state = State()
 
-    try:
-        if args.command == "init":
-            await handle_init(state)
+    if args.command == "init":
+        await handle_init(state)
 
-        elif args.command == "create-spec":
-            log_level = logging.DEBUG if args.verbose else logging.WARNING
-            logging.basicConfig(level=log_level, format="%(message)s", force=True)
-            await handle_create_spec(args.spec_template, state, args.output, args.var)
+    elif args.command == "create-spec":
+        log_level = logging.DEBUG if args.verbose else logging.WARNING
+        logging.basicConfig(level=log_level, format="%(message)s", force=True)
+        await handle_create_spec(args.spec_template, state, args.output, args.var)
 
-        elif args.command == "mcp":
-            if not args.mcp_command:
-                mcp_parser.print_help()
-                sys.exit(1)
+    elif args.command == "mcp":
+        if not args.mcp_command:
+            mcp_parser.print_help()
+            sys.exit(1)
 
-            if args.mcp_command == "add-sse":
-                mcp_context = MCPCommandContext(
-                    subcommand="add-sse",
-                    add_sse=MCPAddSSEContext(server_name=args.server_name, url=args.url),
-                )
-                await handle_mcp(state, mcp_context)
+        if args.mcp_command == "add-sse":
+            mcp_context = MCPCommandContext(
+                subcommand="add-sse",
+                add_sse=MCPAddSSEContext(server_name=args.server_name, url=args.url),
+            )
+            await handle_mcp(state, mcp_context)
 
-            elif args.mcp_command == "add-stdio":
-                mcp_context = MCPCommandContext(
-                    subcommand="add-stdio",
-                    add_stdio=MCPAddStdioContext(
-                        server_name=args.server_name,
-                        env=args.env,
-                        command=args.command_line,
-                    ),
-                )
-                await handle_mcp(state, mcp_context)
+        elif args.mcp_command == "add-stdio":
+            mcp_context = MCPCommandContext(
+                subcommand="add-stdio",
+                add_stdio=MCPAddStdioContext(
+                    server_name=args.server_name,
+                    env=args.env,
+                    command=args.command_line,
+                ),
+            )
+            await handle_mcp(state, mcp_context)
 
-            elif args.mcp_command == "add-http":
-                mcp_context = MCPCommandContext(
-                    subcommand="add-http",
-                    add_http=MCPAddHttpContext(server_name=args.server_name, url=args.url),
-                )
-                await handle_mcp(state, mcp_context)
-
-    except Exception as e:
-        logging.exception(f"Error: {e}")
-        sys.exit(1)
+        elif args.mcp_command == "add-http":
+            mcp_context = MCPCommandContext(
+                subcommand="add-http",
+                add_http=MCPAddHttpContext(server_name=args.server_name, url=args.url),
+            )
+            await handle_mcp(state, mcp_context)
 
 
 if __name__ == "__main__":
