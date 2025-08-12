@@ -19,7 +19,7 @@ def add(a: int, b: int) -> int:
 
 @mcp.tool()
 def jsonTest(cloudId: str, ticketId: str, optional_other: str | None = None) -> dict[str, Any]:
-    """Mock JOSN test tool"""
+    """Mock JSON test tool"""
     return {
         "id": f"{cloudId} - {ticketId}",
         "summary": f"Summary for {ticketId}",
