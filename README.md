@@ -64,7 +64,24 @@ TBD (show template, generation of two specs, and the spec files)
 
 ## Usage
 
-## Filtering context
+### Add MCP tool calls with variables
+
+```
+# Spec Template (spec.md)
+{% set ticket = mcp('jira', 'getJiraIssue', {'cloudId': '1234', 'issueKey': ticket_id}) %}
+
+### Description
+{{ ticket.description }}
+```
+
+Generating the spec with a ticket ID:
+```
+cxk create-spec spec.md --var ticket_id=ACME-123
+```
+
+This will fetch the ticket and add its description to the spec file.
+
+### Filtering context
 
 MCP resources can quickly oversaturate the context. With the template engine, you can apply filters and selectors to include only relevant parts of resources. For example:
 
