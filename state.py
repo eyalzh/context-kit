@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from util.mcp.config import MCPServersConfig
+from mcp_client.config import MCPServersConfig
 
 
 class State:

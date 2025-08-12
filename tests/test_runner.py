@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test runner script that patches collect_var_value for e2e testing."""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -19,12 +20,54 @@ async def mock_collect_var_value(var_name: str) -> str:
         "city": "New York",
         "weather": '{"condition": "sunny", "temp": "75F"}',
         "username": "testuser",
-        "user": "test_user"
+        "user": "test_user",
     }
     return mock_values.get(var_name, f"mock_value_{var_name}")
 
 
+async def mock_collect_tool_input(input_schema, existing_args=None, include_optional=True):
+    """Mock implementation for collecting MCP tool input parameters."""
+    if existing_args is None:
+        existing_args = {}
+
+    properties = input_schema["properties"]
+    required = input_schema.get("required", [])
+    values = existing_args.copy()
+
+    # Mock values for common MCP tool parameters
+    mock_tool_values = {
+        "ticketId": "mock_value_ticketId",
+        "b": 10,  # For integer type parameters like 'b' in add function
+        "cloudId": "mock_cloudId",
+    }
+
+    for field_name, field_info in properties.items():
+        # Skip if field is already provided in existing_args
+        if field_name in existing_args:
+            continue
+
+        is_required = field_name in required
+        field_type = field_info.get("type", "string")
+
+        if not include_optional and not is_required:
+            continue
+
+        # Provide mock value based on field type and name
+        if field_name in mock_tool_values:
+            values[field_name] = mock_tool_values[field_name]
+        elif field_type == "integer":
+            values[field_name] = 42
+        elif field_type == "boolean":
+            values[field_name] = True
+        else:  # string or other types
+            values[field_name] = f"mock_value_{field_name}"
+
+    return values
+
+
 if __name__ == "__main__":
-    # Patch collect_var_value before running main
-    with patch('commands.create_spec.collect_var_value', side_effect=mock_collect_var_value):
+    with (
+        patch("prompt.PromptHelper.collect_var_value", side_effect=mock_collect_var_value),
+        patch("prompt.PromptHelper.collect_tool_input", side_effect=mock_collect_tool_input),
+    ):
         asyncio.run(main())

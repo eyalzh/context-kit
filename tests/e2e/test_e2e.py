@@ -610,7 +610,7 @@ Your age is {{ age }} and you live in {{ city }}."""
                 "create-spec",
                 "--verbose",
                 "--var",
-                "ticket={\"id\":1}",
+                'ticket={"id":1}',
                 "--var",
                 "additional_context=test context",
             ],
@@ -656,3 +656,108 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert output_file.exists()
         content = output_file.read_text()
         assert "Piped template: Hello from pipe!" in content
+
+    def test_create_spec_with_mcp_call(self, temp_git_repo):
+        """Test create-spec with template that includes MCP tool calls."""
+        # Initialize project first
+        init_result = self.run_cli(["init"], cwd=temp_git_repo)
+        assert init_result.returncode == 0
+
+        # Add test MCP server
+        server_path = Path(__file__).parent.parent / "mcp_test_server.py"
+        add_server_result = self.run_cli(
+            ["mcp", "add-stdio", "test-mcp", "--", "uv", "run", "mcp", "run", str(server_path)],
+            cwd=temp_git_repo,
+        )
+        assert add_server_result.returncode == 0
+
+        # Use the existing spec2.md template that has MCP calls
+        template_path = Path(__file__).parent.parent / "templates" / "spec2.md"
+
+        # Run create-spec command with test runner and additional_context variable
+        result = self.run_cli(
+            [
+                "create-spec",
+                "--verbose",
+                str(template_path),
+                "--var",
+                "additional_context=This is test context",
+            ],
+            cwd=temp_git_repo,
+            use_test_runner=True,
+        )
+
+        assert result.returncode == 0
+
+        # Verify that MCP tool was called and returned expected data
+        # The template uses: mcp('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'})
+        # The jsonTest tool returns: {"id": "1234 - ACME-123", "summary": "Summary for ACME-123",
+        # "description": "This is a mock Jira ticket description."}
+
+        # Check that the rendered template contains the expected MCP tool output
+        assert "1234 - ACME-123" in result.stdout  # ticket.id from MCP call
+        assert "This is a mock Jira ticket description." in result.stdout  # ticket.description from MCP call
+        assert "This is test context" in result.stdout  # additional_context variable
+
+        # Verify template structure is preserved
+        assert "# Task Template" in result.stdout
+        assert "## Ticket description" in result.stdout
+        assert "### Description" in result.stdout
+        assert "## Additional context" in result.stdout
+
+    def test_create_spec_with_partial_mcp_call(self, temp_git_repo):
+        """Test create-spec with template that includes partial MCP tool calls requiring user input."""
+        # Initialize project first
+        init_result = self.run_cli(["init"], cwd=temp_git_repo)
+        assert init_result.returncode == 0
+
+        # Add test MCP server
+        server_path = Path(__file__).parent.parent / "mcp_test_server.py"
+        add_server_result = self.run_cli(
+            ["mcp", "add-stdio", "test-mcp", "--", "uv", "run", "mcp", "run", str(server_path)],
+            cwd=temp_git_repo,
+        )
+        assert add_server_result.returncode == 0
+
+        # Use the existing spec3.md template that has partial MCP calls
+        template_path = Path(__file__).parent.parent / "templates" / "spec3.md"
+
+        # Run create-spec command with test runner and additional_context variable
+        # The template has:
+        # - mcp('test-mcp', 'jsonTest', {'cloudId': '1234'}) - missing 'ticketId' parameter
+        # - mcp('test-mcp', 'add', {'a': 5}) - missing 'b' parameter
+        result = self.run_cli(
+            [
+                "create-spec",
+                "--verbose",
+                str(template_path),
+                "--var",
+                "additional_context=This is test context for partial MCP",
+            ],
+            cwd=temp_git_repo,
+            use_test_runner=True,
+        )
+
+        assert result.returncode == 0
+
+        # Verify that MCP tools were called with both provided and collected parameters
+        # For jsonTest: cloudId='1234' + ticketId from mock (should be 'mock_value_ticketId')
+        # Expected output: "1234 - mock_value_ticketId"
+        assert "1234 - mock_value_ticketId" in result.stdout
+
+        # Verify the description from jsonTest call
+        assert "This is a mock Jira ticket description." in result.stdout
+
+        # For add: a=5 + b from mock (should be 10), so result should be 15
+        assert "15" in result.stdout
+
+        # Verify additional_context variable
+        assert "This is test context for partial MCP" in result.stdout
+
+        # Verify template structure is preserved
+        assert "# Task Template" in result.stdout
+        assert "## Ticket description" in result.stdout
+        assert "### Description" in result.stdout
+        assert "## Additional context" in result.stdout
+        assert "## Some math..." in result.stdout
+

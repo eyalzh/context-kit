@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import logging
 import sys
 
 from commands.create_spec import handle_create_spec
@@ -61,7 +62,9 @@ async def main():
             await handle_init(state)
 
         elif args.command == "create-spec":
-            await handle_create_spec(args.spec_template, args.output, args.var, args.verbose)
+            log_level = logging.DEBUG if args.verbose else logging.WARNING
+            logging.basicConfig(level=log_level, format="%(message)s", force=True)
+            await handle_create_spec(args.spec_template, state, args.output, args.var)
 
         elif args.command == "mcp":
             if not args.mcp_command:
@@ -94,7 +97,7 @@ async def main():
                 await handle_mcp(state, mcp_context)
 
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logging.exception(f"Error: {e}")
         sys.exit(1)
 
 
