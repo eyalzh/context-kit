@@ -81,6 +81,18 @@ cxk create-spec spec.md --var ticket_id=ACME-123
 
 This will fetch the ticket and add its description to the spec file.
 
+### Add MCP resources with variables
+```
+# Spec Template (spec.md)
+## PRD
+{{ get_resource('doc-storage-service', 'docs://'+prd_id) }}
+```
+
+Generating the spec with a PRD ID:
+```
+cxk create-spec spec.md --var prd_id=PRD-456
+```
+
 ### Filtering context
 
 MCP resources can quickly oversaturate the context. With the template engine, you can apply filters and selectors to include only relevant parts of resources. For example:

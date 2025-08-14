@@ -2,4 +2,4 @@
 
 ## Information from greeting service
 
-{{ get_resource('test-mcp', 'greeting://foobar') }}
+{{ get_resource('test-mcp', 'greeting://'+name) }}

@@ -3,6 +3,7 @@ from typing import Any
 
 from mcp import types
 from mcp.shared.metadata_utils import get_display_name
+from pydantic import AnyUrl
 
 from mcp_client.client_session_provider import get_client_session_by_server
 from prompt import PromptHelper
@@ -16,7 +17,6 @@ def create_mcp_tool_function(state: State, prompt_helper: PromptHelper):
     async def call_mcp_tool(server: str, tool_name: str, args: dict) -> str | dict[str, Any]:
         logging.info(f"Calling MCP tool: {tool_name} on server: {server} with args: {args}")
         async with get_client_session_by_server(server, state) as session:
-            # Initialize the connection
             await session.initialize()
 
             tools = await session.list_tools()
@@ -39,3 +39,28 @@ def create_mcp_tool_function(state: State, prompt_helper: PromptHelper):
                 return ""
 
     return call_mcp_tool
+
+
+def create_mcp_resource_function(state: State):
+    """Create a get_mcp_resource function with state bound."""
+
+    async def get_mcp_resource(server: str, resource_uri: str) -> str | dict[str, Any]:
+        logging.info(f"Getting MCP resource: {resource_uri} in server: {server}")
+        async with get_client_session_by_server(server, state) as session:
+            await session.initialize()
+
+            # Fetch the resource (first content item for now)
+            try:
+                resource = await session.read_resource(AnyUrl(resource_uri))
+                result_unstructured = resource.contents[0]
+                if isinstance(result_unstructured, types.TextResourceContents):
+                    return parse_input_string(result_unstructured.text)
+                else:
+                    logging.debug(f"Resource {resource_uri} returned non-text content")
+                    return ""
+            except Exception as e:
+                logging.error(f"Error fetching resource {resource_uri}: {e}")
+                return {}
+        pass
+
+    return get_mcp_resource
