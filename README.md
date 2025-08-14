@@ -68,7 +68,7 @@ TBD (show template, generation of two specs, and the spec files)
 
 ```
 # Spec Template (spec.md)
-{% set ticket = mcp('jira', 'getJiraIssue', {'cloudId': '1234', 'issueKey': ticket_id}) %}
+{% set ticket = call_tool('jira', 'getJiraIssue', {'cloudId': '1234', 'issueKey': ticket_id}) %}
 
 ### Description
 {{ ticket.description }}
@@ -81,13 +81,25 @@ cxk create-spec spec.md --var ticket_id=ACME-123
 
 This will fetch the ticket and add its description to the spec file.
 
+### Add MCP resources with variables
+```
+# Spec Template (spec.md)
+## PRD
+{{ get_resource('doc-storage-service', 'docs://'+prd_id) }}
+```
+
+Generating the spec with a PRD ID:
+```
+cxk create-spec spec.md --var prd_id=PRD-456
+```
+
 ### Filtering context
 
 MCP resources can quickly oversaturate the context. With the template engine, you can apply filters and selectors to include only relevant parts of resources. For example:
 
 ```
 ## Ticket description
-{% set ticket_info = mcp('jira', 'getJiraIssue', {'issueKey': 'ACME-4432'}) %}
+{% set ticket_info = call_tool('jira', 'getJiraIssue', {'issueKey': 'ACME-4432'}) %}
 {{ ticket_info.fields.description }}
 ```
 
@@ -95,7 +107,7 @@ You can also filter resources to mask sensitive information:
 
 ```
 ## Support ticket
-{% set support_ticket_info = mcp('support', 'getTicket', 'ACME-9912') %}
+{% set support_ticket_info = call_tool('support', 'getTicket', 'ACME-9912') %}
 {{ support_ticket_info | regex_replace(r'\b[\w.+-]+@[\w.-]+\.\w+\b', '[EMAIL_REDACTED]') }}
 ```
 

@@ -2,7 +2,7 @@
 
 ## Ticket description
 
-{% set ticket = mcp('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'}) %}
+{% set ticket = call_tool('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'}) %}
 
 {{ ticket.id }}
 

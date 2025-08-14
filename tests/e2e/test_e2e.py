@@ -690,7 +690,7 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert result.returncode == 0
 
         # Verify that MCP tool was called and returned expected data
-        # The template uses: mcp('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'})
+        # The template uses: call_tool('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': 'ACME-123'})
         # The jsonTest tool returns: {"id": "1234 - ACME-123", "summary": "Summary for ACME-123",
         # "description": "This is a mock Jira ticket description."}
 
@@ -724,8 +724,8 @@ Your age is {{ age }} and you live in {{ city }}."""
 
         # Run create-spec command with test runner and additional_context variable
         # The template has:
-        # - mcp('test-mcp', 'jsonTest', {'cloudId': '1234'}) - missing 'ticketId' parameter
-        # - mcp('test-mcp', 'add', {'a': 5}) - missing 'b' parameter
+        # - call_tool('test-mcp', 'jsonTest', {'cloudId': '1234'}) - missing 'ticketId' parameter
+        # - call_tool('test-mcp', 'add', {'a': 5}) - missing 'b' parameter
         result = self.run_cli(
             [
                 "create-spec",
@@ -760,4 +760,42 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert "### Description" in result.stdout
         assert "## Additional context" in result.stdout
         assert "## Some math..." in result.stdout
+
+    def test_create_spec_with_mcp_resource(self, temp_git_repo):
+        """Test create-spec with template that includes MCP resource calls."""
+        # Initialize project first
+        init_result = self.run_cli(["init"], cwd=temp_git_repo)
+        assert init_result.returncode == 0
+
+        # Add test MCP server
+        server_path = Path(__file__).parent.parent / "mcp_test_server.py"
+        add_server_result = self.run_cli(
+            ["mcp", "add-stdio", "test-mcp", "--", "uv", "run", "mcp", "run", str(server_path)],
+            cwd=temp_git_repo,
+        )
+        assert add_server_result.returncode == 0
+
+        # Use the existing spec5.md template that has MCP resource calls
+        template_path = Path(__file__).parent.parent / "templates" / "spec5.md"
+
+        # Run create-spec command
+        result = self.run_cli(
+            [
+                "create-spec",
+                "--verbose",
+                str(template_path),
+            ],
+            cwd=temp_git_repo,
+        )
+
+        assert result.returncode == 0
+
+        # Verify that MCP resource was called and returned expected data
+        # The template uses: get_resource('test-mcp', 'greeting://foobar')
+        # The get_greeting resource returns: "Hello, foobar!"
+        assert "Hello, foobar!" in result.stdout
+
+        # Verify template structure is preserved
+        assert "# Task Template" in result.stdout
+        assert "## Information from greeting service" in result.stdout
 

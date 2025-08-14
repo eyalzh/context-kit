@@ -2,7 +2,7 @@
 
 ## Ticket description
 
-{% set ticket = mcp('test-mcp', 'jsonTest', {'cloudId': '1234'}) %}
+{% set ticket = call_tool('test-mcp', 'jsonTest', {'cloudId': '1234'}) %}
 
 {{ ticket.id }}
 
@@ -15,4 +15,4 @@
 
 ## Some math...
 
-{{ mcp('test-mcp', 'add', {'a': 5}) }}
+{{ call_tool('test-mcp', 'add', {'a': 5}) }}

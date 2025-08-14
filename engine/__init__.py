@@ -3,7 +3,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template, meta, select_autoescape
 
-from engine.globals import create_mcp_tool_function
+from engine.globals import create_mcp_resource_function, create_mcp_tool_function
 from prompt import PromptHelper
 from state import State
 
@@ -34,8 +34,9 @@ class TemplateEngine:
         self._state = state
         self._prompt_helper = prompt_helper
 
-        # Add global functions to env
-        self.env.globals["mcp"] = create_mcp_tool_function(self._state, self._prompt_helper)
+        # Add global functions to env to support MCP tools and resources
+        self.env.globals["call_tool"] = create_mcp_tool_function(self._state, self._prompt_helper)
+        self.env.globals["get_resource"] = create_mcp_resource_function(self._state)
 
     @classmethod
     def from_file(cls, path: str | Path, state: State, prompt_helper: PromptHelper) -> "TemplateEngine":
