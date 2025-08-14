@@ -61,6 +61,5 @@ def create_mcp_resource_function(state: State):
             except Exception as e:
                 logging.error(f"Error fetching resource {resource_uri}: {e}")
                 return {}
-        pass
 
     return get_mcp_resource
