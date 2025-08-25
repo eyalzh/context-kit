@@ -1,8 +1,7 @@
 import json
 from pathlib import Path
 
-from mcp_client.config import MCPServersConfig
-from mcp_client.token_storage import KeychainTokenStorageWithFallback
+from mcp_client import KeychainTokenStorageWithFallback, MCPServersConfig
 
 
 class State:

@@ -5,7 +5,7 @@ from mcp import types
 from mcp.shared.metadata_utils import get_display_name
 from pydantic import AnyUrl
 
-from mcp_client.client_session_provider import get_client_session_by_server
+from mcp_client import get_client_session_by_server
 from prompt import PromptHelper
 from util.parse import parse_input_string
 

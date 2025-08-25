@@ -3,7 +3,7 @@ import os
 import sys
 
 from engine import TemplateEngine, TemplateParseError
-from mcp_client.session_manager import get_session_manager
+from mcp_client import get_session_manager
 from prompt import PromptHelper
 from state import State
 from util.parse import parse_input_string

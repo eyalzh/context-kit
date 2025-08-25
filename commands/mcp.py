@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from mcp_client.config import SSEServerConfig, StdioServerConfig
+from mcp_client import SSEServerConfig, StdioServerConfig
 from state import State
 
 

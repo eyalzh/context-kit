@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.auth import OAuthClientProvider, TokenStorage
+from mcp.client.auth import OAuthClientProvider
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
-from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
+from mcp.shared.auth import OAuthClientMetadata
 from pydantic import AnyUrl
 
 from auth_server import AuthServer
@@ -21,30 +21,6 @@ from .session_manager import get_session_manager
 
 if TYPE_CHECKING:
     from state import State
-
-
-class InMemoryTokenStorage(TokenStorage):
-    """Demo In-memory token storage implementation."""
-
-    def __init__(self):
-        self.tokens: OAuthToken | None = None
-        self.client_info: OAuthClientInformationFull | None = None
-
-    async def get_tokens(self) -> OAuthToken | None:
-        """Get stored tokens."""
-        return self.tokens
-
-    async def set_tokens(self, tokens: OAuthToken) -> None:
-        """Store tokens."""
-        self.tokens = tokens
-
-    async def get_client_info(self) -> OAuthClientInformationFull | None:
-        """Get stored client information."""
-        return self.client_info
-
-    async def set_client_info(self, client_info: OAuthClientInformationFull) -> None:
-        """Store client information."""
-        self.client_info = client_info
 
 
 async def handle_redirect(auth_url: str) -> None:
@@ -69,8 +45,8 @@ async def get_stdio_session(server_params: StdioServerParameters, config_dir: Pa
 
 
 @asynccontextmanager
-async def get_streamablehttp_session(server_url: str, server_name: str, state: "State | None" = None):
-    token_storage = state.get_token_storage(server_name) if state else InMemoryTokenStorage()
+async def get_streamablehttp_session(server_url: str, server_name: str, state: "State"):
+    token_storage = state.get_token_storage(server_name)
     oauth_auth = OAuthClientProvider(
         server_url=server_url,
         client_metadata=OAuthClientMetadata(
@@ -96,8 +72,8 @@ async def get_streamablehttp_session(server_url: str, server_name: str, state: "
 
 
 @asynccontextmanager
-async def get_sse_session(server_url: str, server_name: str, state: "State | None" = None):
-    token_storage = state.get_token_storage(server_name) if state else InMemoryTokenStorage()
+async def get_sse_session(server_url: str, server_name: str, state: "State"):
+    token_storage = state.get_token_storage(server_name)
     async with AuthServer() as auth_server:
         oauth_auth = OAuthClientProvider(
             server_url=server_url,
