@@ -20,9 +20,7 @@ class StdioServerConfig(BaseServerConfig):
     type: str | None = Field(default="stdio", description="Server transport type")
     command: str = Field(..., description="Command to execute the server")
     args: list[str] | None = Field(default=None, description="Command line arguments")
-    env: dict[str, str] | None = Field(
-        default=None, description="Environment variables"
-    )
+    env: dict[str, str] | None = Field(default=None, description="Environment variables")
 
     @field_validator("type")
     @classmethod
@@ -59,9 +57,7 @@ class MCPServersConfig(BaseModel):
     def validate_server_names(cls, v):
         for server_name in v.keys():
             if not server_name or len(server_name) > 250:
-                raise ValueError(
-                    "Server name must not be empty and must not be longer than 250 characters"
-                )
+                raise ValueError("Server name must not be empty and must not be longer than 250 characters")
         return v
 
     @model_validator(mode="before")

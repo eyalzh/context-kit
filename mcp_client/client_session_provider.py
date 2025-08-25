@@ -1,3 +1,4 @@
+import webbrowser
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -5,46 +6,28 @@ from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from mcp import ClientSession, StdioServerParameters
-from mcp.client.auth import OAuthClientProvider, TokenStorage
+from mcp.client.auth import OAuthClientProvider
 from mcp.client.sse import sse_client
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
-from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
+from mcp.shared.auth import OAuthClientMetadata
 from pydantic import AnyUrl
 
-from .config import SSEServerConfig, StdioServerConfig
+from auth_server import AuthServer
+from util.terminal import display_hyperlink
+
 from .mcp_logger import get_mcp_log_file
+from .session_manager import get_session_manager
 
 if TYPE_CHECKING:
     from state import State
 
 
-class InMemoryTokenStorage(TokenStorage):
-    """Demo In-memory token storage implementation."""
-
-    def __init__(self):
-        self.tokens: OAuthToken | None = None
-        self.client_info: OAuthClientInformationFull | None = None
-
-    async def get_tokens(self) -> OAuthToken | None:
-        """Get stored tokens."""
-        return self.tokens
-
-    async def set_tokens(self, tokens: OAuthToken) -> None:
-        """Store tokens."""
-        self.tokens = tokens
-
-    async def get_client_info(self) -> OAuthClientInformationFull | None:
-        """Get stored client information."""
-        return self.client_info
-
-    async def set_client_info(self, client_info: OAuthClientInformationFull) -> None:
-        """Store client information."""
-        self.client_info = client_info
-
-
 async def handle_redirect(auth_url: str) -> None:
-    print(f"Visit: {auth_url}")
+    print(f"ContextKit requires authorization, opening {display_hyperlink(auth_url)}")
+    opened = webbrowser.open(auth_url)
+    if not opened:
+        print("Failed to open browser automatically. Please open the URL manually in your browser.")
 
 
 async def handle_callback() -> tuple[str, str | None]:
@@ -62,17 +45,18 @@ async def get_stdio_session(server_params: StdioServerParameters, config_dir: Pa
 
 
 @asynccontextmanager
-async def get_streamablehttp_session(server_url: str):
+async def get_streamablehttp_session(server_url: str, server_name: str, state: "State"):
+    token_storage = state.get_token_storage(server_name)
     oauth_auth = OAuthClientProvider(
         server_url=server_url,
         client_metadata=OAuthClientMetadata(
-            client_name="Example MCP Client",
+            client_name="ContextKit MCP Client",
             redirect_uris=[AnyUrl("http://localhost:3000/callback")],
             grant_types=["authorization_code", "refresh_token"],
             response_types=["code"],
             scope="user",
         ),
-        storage=InMemoryTokenStorage(),
+        storage=token_storage,
         redirect_handler=handle_redirect,
         callback_handler=handle_callback,
     )
@@ -88,19 +72,22 @@ async def get_streamablehttp_session(server_url: str):
 
 
 @asynccontextmanager
-async def get_sse_session(server_url: str):
+async def get_sse_session(server_url: str, server_name: str, state: "State", auth_server: AuthServer | None = None):
+    if auth_server is None:
+        raise ValueError("AuthServer must be provided for SSE sessions")
+
+    token_storage = state.get_token_storage(server_name)
     oauth_auth = OAuthClientProvider(
         server_url=server_url,
         client_metadata=OAuthClientMetadata(
-            client_name="Example MCP Client",
-            redirect_uris=[AnyUrl("http://localhost:41008/callback")],
+            client_name="ContextKit MCP Client",
+            redirect_uris=[AnyUrl(auth_server.callback_url)],
             grant_types=["authorization_code", "refresh_token"],
             response_types=["code"],
-            scope="user",
         ),
-        storage=InMemoryTokenStorage(),
+        storage=token_storage,
         redirect_handler=handle_redirect,
-        callback_handler=handle_callback,
+        callback_handler=auth_server.handle_callback,
     )
 
     # Connect to a Server-Sent Events (SSE) server
@@ -115,23 +102,9 @@ async def get_sse_session(server_url: str):
 
 
 @asynccontextmanager
-async def get_client_session_by_server(server_name: str, state: "State") -> AsyncGenerator[ClientSession, None]:
-    # Find the server configuration by name
-    server_config = state.mcp_config.mcpServers.get(server_name)
-    if not server_config:
-        raise ValueError(f"Server '{server_name}' not found in configuration.")
-    if isinstance(server_config, StdioServerConfig):
-        async with get_stdio_session(
-            StdioServerParameters(
-                command=server_config.command,
-                args=server_config.args or [],
-                env=server_config.env,
-            ),
-            config_dir=state.config_dir,
-        ) as session:
-            yield session
-    elif isinstance(server_config, SSEServerConfig):
-        async with get_sse_session(server_config.url) as session:
-            yield session
-    else:
-        raise ValueError(f"Unsupported server type for '{server_name}': {type(server_config)}")
+async def get_client_session_by_server(server_name: str) -> AsyncGenerator[ClientSession, None]:
+    session_manager = get_session_manager()
+
+    if session_manager.is_initialized:
+        session = session_manager.get_session(server_name)
+        yield session

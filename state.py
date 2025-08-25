@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from mcp_client.config import MCPServersConfig
+from mcp_client import KeychainTokenStorageWithFallback, MCPServersConfig
 
 
 class State:
@@ -10,6 +10,7 @@ class State:
         self.config_dir = self.project_root / ".cxk" if self.project_root else None
         self.config_file = self.config_dir / "mcp.json" if self.config_dir else None
         self._mcp_config: MCPServersConfig | None = None
+        self._token_storages: dict[str, KeychainTokenStorageWithFallback] = {}
 
     def _find_git_root(self) -> Path | None:
         current = Path.cwd()
@@ -67,3 +68,9 @@ class State:
             self.config_dir.mkdir(exist_ok=True)
         if self.config_file and not self.config_file.exists():
             self.save_mcp_config()
+
+    def get_token_storage(self, server_name: str) -> KeychainTokenStorageWithFallback:
+        """Get or create token storage instance for a specific server."""
+        if server_name not in self._token_storages:
+            self._token_storages[server_name] = KeychainTokenStorageWithFallback(self, server_name)
+        return self._token_storages[server_name]

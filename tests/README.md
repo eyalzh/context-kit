@@ -62,3 +62,14 @@ uv run cxk.py create-spec tests/templates/spec5.md
 ```
 uv run cxk.py create-spec tests/templates/spec6.md --var name=MrBean
 ```
+
+### With SSE-based MCP resources:
+```
+uv run cxk.py create-spec tests/templates/spec7.md
+uv run -m debugpy --listen 5678 --wait-for-client cxk.py create-spec tests/templates/spec7.md
+```
+
+### With multiple MCP resources and tools:
+```
+uv run cxk.py create-spec tests/templates/spec8.md
+``` 

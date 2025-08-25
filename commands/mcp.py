@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from mcp_client.config import SSEServerConfig, StdioServerConfig
+from mcp_client import SSEServerConfig, StdioServerConfig
 from state import State
 
 
@@ -42,9 +42,7 @@ async def handle_mcp(state: State, context: MCPCommandContext):
                     key, value = env_var.split("=", 1)
                     env_dict[key] = value
                 else:
-                    raise ValueError(
-                        f"Invalid environment variable format: {env_var}. Use KEY=VALUE format."
-                    )
+                    raise ValueError(f"Invalid environment variable format: {env_var}. Use KEY=VALUE format.")
 
         await handle_add_stdio(
             state,
@@ -92,6 +90,4 @@ async def handle_add_stdio(
 
 
 async def handle_add_http(state: State, server_name: str, url: str):
-    print(
-        f"HTTP server support not implemented yet. Would add '{server_name}' with URL: {url}"
-    )
+    print(f"HTTP server support not implemented yet. Would add '{server_name}' with URL: {url}")
