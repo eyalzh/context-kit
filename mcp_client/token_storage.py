@@ -11,6 +11,8 @@ from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
 logger = logging.getLogger(__name__)
 
+KEYCHAIN_STORAGE_VERSION = 1
+
 
 class KeychainTokenStorageWithFallback(TokenStorage):
     """
@@ -23,7 +25,7 @@ class KeychainTokenStorageWithFallback(TokenStorage):
         """Initialize with state object containing configuration."""
         self.state = state
         self.server_name = server_name
-        self.service_name = "contextkit"
+        self.service_name = f"contextkit_{KEYCHAIN_STORAGE_VERSION}"
         self.username = f"secrets_{server_name}"
         self.keychain_enabled = True
 
