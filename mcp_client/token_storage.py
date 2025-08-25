@@ -182,12 +182,10 @@ class KeychainTokenStorageWithFallback(TokenStorage):
             # Update with new data
             existing_data.update(update_data)
 
-            # Write back to file with restricted permissions
-            with open(self.fallback_file, "w") as f:
+            # Write back to file with restricted permissions from creation
+            fd = os.open(self.fallback_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)
+            with os.fdopen(fd, "w") as f:
                 json.dump(existing_data, f, indent=2)
-
-            # Set restrictive permissions (owner read/write only)
-            os.chmod(self.fallback_file, stat.S_IRUSR | stat.S_IWUSR)
             logger.debug(f"Data stored in fallback file: {self.fallback_file}")
 
         except Exception as e:
