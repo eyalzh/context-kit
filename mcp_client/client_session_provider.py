@@ -1,3 +1,4 @@
+import webbrowser
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,8 +13,11 @@ from mcp.client.streamable_http import streamablehttp_client
 from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
 from pydantic import AnyUrl
 
-from .config import SSEServerConfig, StdioServerConfig
+from auth_server import AuthServer
+from util.terminal import display_hyperlink
+
 from .mcp_logger import get_mcp_log_file
+from .session_manager import get_session_manager
 
 if TYPE_CHECKING:
     from state import State
@@ -44,7 +48,10 @@ class InMemoryTokenStorage(TokenStorage):
 
 
 async def handle_redirect(auth_url: str) -> None:
-    print(f"Visit: {auth_url}")
+    print(f"ContextKit requires authorization, opening {display_hyperlink(auth_url)}")
+    opened = webbrowser.open(auth_url)
+    if not opened:
+        print("Failed to open browser automatically. Please open the URL manually in your browser.")
 
 
 async def handle_callback() -> tuple[str, str | None]:
@@ -62,17 +69,18 @@ async def get_stdio_session(server_params: StdioServerParameters, config_dir: Pa
 
 
 @asynccontextmanager
-async def get_streamablehttp_session(server_url: str):
+async def get_streamablehttp_session(server_url: str, server_name: str, state: "State | None" = None):
+    token_storage = state.get_token_storage(server_name) if state else InMemoryTokenStorage()
     oauth_auth = OAuthClientProvider(
         server_url=server_url,
         client_metadata=OAuthClientMetadata(
-            client_name="Example MCP Client",
+            client_name="ContextKit MCP Client",
             redirect_uris=[AnyUrl("http://localhost:3000/callback")],
             grant_types=["authorization_code", "refresh_token"],
             response_types=["code"],
             scope="user",
         ),
-        storage=InMemoryTokenStorage(),
+        storage=token_storage,
         redirect_handler=handle_redirect,
         callback_handler=handle_callback,
     )
@@ -88,50 +96,37 @@ async def get_streamablehttp_session(server_url: str):
 
 
 @asynccontextmanager
-async def get_sse_session(server_url: str):
-    oauth_auth = OAuthClientProvider(
-        server_url=server_url,
-        client_metadata=OAuthClientMetadata(
-            client_name="Example MCP Client",
-            redirect_uris=[AnyUrl("http://localhost:41008/callback")],
-            grant_types=["authorization_code", "refresh_token"],
-            response_types=["code"],
-            scope="user",
-        ),
-        storage=InMemoryTokenStorage(),
-        redirect_handler=handle_redirect,
-        callback_handler=handle_callback,
-    )
+async def get_sse_session(server_url: str, server_name: str, state: "State | None" = None):
+    token_storage = state.get_token_storage(server_name) if state else InMemoryTokenStorage()
+    async with AuthServer() as auth_server:
+        oauth_auth = OAuthClientProvider(
+            server_url=server_url,
+            client_metadata=OAuthClientMetadata(
+                client_name="ContextKit MCP Client",
+                redirect_uris=[AnyUrl(auth_server.callback_url)],
+                grant_types=["authorization_code", "refresh_token"],
+                response_types=["code"],
+            ),
+            storage=token_storage,
+            redirect_handler=handle_redirect,
+            callback_handler=auth_server.handle_callback,
+        )
 
-    # Connect to a Server-Sent Events (SSE) server
-    async with sse_client(
-        url=server_url,
-        auth=oauth_auth,
-        timeout=60,
-    ) as (read_stream, write_stream):
-        # Create a session using the client streams
-        async with ClientSession(read_stream, write_stream) as session:
-            yield session
+        # Connect to a Server-Sent Events (SSE) server
+        async with sse_client(
+            url=server_url,
+            auth=oauth_auth,
+            timeout=60,
+        ) as (read_stream, write_stream):
+            # Create a session using the client streams
+            async with ClientSession(read_stream, write_stream) as session:
+                yield session
 
 
 @asynccontextmanager
-async def get_client_session_by_server(server_name: str, state: "State") -> AsyncGenerator[ClientSession, None]:
-    # Find the server configuration by name
-    server_config = state.mcp_config.mcpServers.get(server_name)
-    if not server_config:
-        raise ValueError(f"Server '{server_name}' not found in configuration.")
-    if isinstance(server_config, StdioServerConfig):
-        async with get_stdio_session(
-            StdioServerParameters(
-                command=server_config.command,
-                args=server_config.args or [],
-                env=server_config.env,
-            ),
-            config_dir=state.config_dir,
-        ) as session:
-            yield session
-    elif isinstance(server_config, SSEServerConfig):
-        async with get_sse_session(server_config.url) as session:
-            yield session
-    else:
-        raise ValueError(f"Unsupported server type for '{server_name}': {type(server_config)}")
+async def get_client_session_by_server(server_name: str) -> AsyncGenerator[ClientSession, None]:
+    session_manager = get_session_manager()
+
+    if session_manager.is_initialized:
+        session = session_manager.get_session(server_name)
+        yield session

@@ -1,4 +1,5 @@
 import json
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -7,7 +8,7 @@ import pytest
 
 
 class TestCLI:
-    @pytest.fixture
+    @pytest.fixture(scope="session")
     def temp_git_repo(self):
         """Create a temporary git repository for testing."""
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -28,6 +29,16 @@ class TestCLI:
             subprocess.run(["git", "commit", "-m", "Initial commit"], cwd=repo_path, check=True)
 
             yield repo_path
+
+    @pytest.fixture(autouse=True)
+    def cleanup_cxk_folder(self, temp_git_repo):
+        """Clean .cxk folder after each test to ensure test isolation."""
+        yield  # Run the test
+
+        # Clean up .cxk folder after test
+        cxk_dir = temp_git_repo / ".cxk"
+        if cxk_dir.exists():
+            shutil.rmtree(cxk_dir)
 
     @pytest.fixture
     def temp_non_git_dir(self):
@@ -282,7 +293,7 @@ class TestCLI:
         assert "mcp" in result.stdout
         assert "create-spec" in result.stdout
 
-    def test_create_spec_with_variables(self, temp_non_git_dir):
+    def test_create_spec_with_variables(self, temp_git_repo):
         """Test create-spec with a template containing variables."""
         # Create a test template with variables
         template_content = """
@@ -290,11 +301,11 @@ Hello {{ name }}!
 Your age is {{ age }} and you live in {{ city }}.
 Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
 """
-        template_file = temp_non_git_dir / "test_template.j2"
+        template_file = temp_git_repo / "test_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with test runner to patch collect_var_value
-        result = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
+        result = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True, cwd=temp_git_repo)
 
         assert result.returncode == 0
 
@@ -303,15 +314,15 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         assert "Your age is 25 and you live in New York." in result.stdout
         assert "Today's weather is sunny with temperature 75F." in result.stdout
 
-    def test_create_spec_no_variables(self, temp_non_git_dir):
+    def test_create_spec_no_variables(self, temp_git_repo):
         """Test create-spec with a template containing no variables."""
         # Create a test template without variables
         template_content = "This is a static template with no variables."
-        template_file = temp_non_git_dir / "static_template.j2"
+        template_file = temp_git_repo / "static_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with test runner (patching won't affect this case)
-        result = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
+        result = self.run_cli(["create-spec", "--verbose", str(template_file)], cwd=temp_git_repo, use_test_runner=True)
 
         assert result.returncode == 0
         assert "No variables found in template" in result.stderr
@@ -319,16 +330,16 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         # Verify rendered template output for static template
         assert "This is a static template with no variables." in result.stdout
 
-    def test_create_spec_relative_path(self, temp_non_git_dir):
+    def test_create_spec_relative_path(self, temp_git_repo):
         """Test create-spec with a relative path (filename only)."""
         # Create a test template
         template_content = "Hello {{ username }}!"
-        template_file = temp_non_git_dir / "relative_template.j2"
+        template_file = temp_git_repo / "relative_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with just the filename (relative path) using test runner
         result = self.run_cli(
-            ["create-spec", "--verbose", "relative_template.j2"], cwd=temp_non_git_dir, use_test_runner=True
+            ["create-spec", "--verbose", "relative_template.j2"], cwd=temp_git_repo, use_test_runner=True
         )
 
         assert result.returncode == 0
@@ -337,39 +348,41 @@ Today's weather is {{ weather.condition }} with temperature {{ weather.temp }}.
         # Verify rendered template output
         assert "Hello testuser!" in result.stdout
 
-    def test_create_spec_file_not_found(self, temp_non_git_dir):
+    def test_create_spec_file_not_found(self, temp_git_repo):
         """Test create-spec with non-existent template file."""
-        result = self.run_cli(["create-spec", "non_existent.j2"], cwd=temp_non_git_dir, use_test_runner=True)
+        result = self.run_cli(["create-spec", "non_existent.j2"], cwd=temp_git_repo, use_test_runner=True)
 
         assert result.returncode != 0
         assert "Error: Template file 'non_existent.j2' not found" in result.stderr
 
-    def test_create_spec_invalid_template(self, temp_non_git_dir):
+    def test_create_spec_invalid_template(self, temp_git_repo):
         """Test create-spec with invalid template syntax."""
         # Create a template with invalid Jinja2 syntax
         template_content = "Hello {{ name with invalid syntax!"
-        template_file = temp_non_git_dir / "invalid_template.j2"
+        template_file = temp_git_repo / "invalid_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with test runner
-        result = self.run_cli(["create-spec", str(template_file)], use_test_runner=True)
+        result = self.run_cli(["create-spec", str(template_file)], cwd=temp_git_repo, use_test_runner=True)
 
         assert result.returncode != 0
 
-    def test_create_spec_with_output_file(self, temp_non_git_dir):
+    def test_create_spec_with_output_file(self, temp_git_repo):
         """Test create-spec with --output flag saves to file."""
         # Create a test template with variables
         template_content = """Hello {{ name }}!
 Your age is {{ age }} and you live in {{ city }}."""
-        template_file = temp_non_git_dir / "output_test_template.j2"
+        template_file = temp_git_repo / "output_test_template.j2"
         template_file.write_text(template_content)
 
         # Define output file
-        output_file = temp_non_git_dir / "rendered_spec.md"
+        output_file = temp_git_repo / "rendered_spec.md"
 
         # Run create-spec command with --output flag
         result = self.run_cli(
-            ["create-spec", "--verbose", str(template_file), "--output", str(output_file)], use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--output", str(output_file)],
+            cwd=temp_git_repo,
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
@@ -380,36 +393,38 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert "Hello John!" in content
         assert "Your age is 25 and you live in New York." in content
 
-    def test_create_spec_output_file_relative_path(self, temp_non_git_dir):
+    def test_create_spec_output_file_relative_path(self, temp_git_repo):
         """Test create-spec with --output using relative path."""
         # Create a test template
         template_content = "Template for {{ username }}"
-        template_file = temp_non_git_dir / "relative_output_template.j2"
+        template_file = temp_git_repo / "relative_output_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with relative output path
         result = self.run_cli(
             ["create-spec", "--verbose", str(template_file), "--output", "output.md"],
-            cwd=temp_non_git_dir,
+            cwd=temp_git_repo,
             use_test_runner=True,
         )
 
         assert result.returncode == 0
 
         # Verify file was created with absolute path in message
-        output_file = temp_non_git_dir / "output.md"
+        output_file = temp_git_repo / "output.md"
         assert output_file.exists()
         assert "Template for testuser" in output_file.read_text()
 
-    def test_create_spec_stdout_vs_file_output(self, temp_non_git_dir):
+    def test_create_spec_stdout_vs_file_output(self, temp_git_repo):
         """Test that stdout and file output contain the same content."""
         # Create a test template
         template_content = "Hello {{ name }}! You are {{ age }} years old."
-        template_file = temp_non_git_dir / "comparison_template.j2"
+        template_file = temp_git_repo / "comparison_template.j2"
         template_file.write_text(template_content)
 
         # Run without --output (stdout)
-        result_stdout = self.run_cli(["create-spec", "--verbose", str(template_file)], use_test_runner=True)
+        result_stdout = self.run_cli(
+            ["create-spec", "--verbose", str(template_file)], cwd=temp_git_repo, use_test_runner=True
+        )
 
         # Extract rendered content from stdout
         stdout_lines = result_stdout.stdout.split("\n")
@@ -436,9 +451,11 @@ Your age is {{ age }} and you live in {{ city }}."""
             stdout_rendered = "\n".join(template_lines).strip()
 
         # Run with --output (file)
-        output_file = temp_non_git_dir / "comparison_output.md"
+        output_file = temp_git_repo / "comparison_output.md"
         result_file = self.run_cli(
-            ["create-spec", "--verbose", str(template_file), "--output", str(output_file)], use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--output", str(output_file)],
+            cwd=temp_git_repo,
+            use_test_runner=True,
         )
 
         assert result_stdout.returncode == 0
@@ -449,16 +466,18 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert stdout_rendered == file_content
         assert "Hello John! You are 25 years old." in file_content
 
-    def test_create_spec_with_var_override_single(self, temp_non_git_dir):
+    def test_create_spec_with_var_override_single(self, temp_git_repo):
         """Test create-spec with single --var override."""
         # Create a test template with variables
         template_content = "Hello {{ name }}! You are {{ age }} years old."
-        template_file = temp_non_git_dir / "var_override_template.j2"
+        template_file = temp_git_repo / "var_override_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with --var override
         result = self.run_cli(
-            ["create-spec", "--verbose", str(template_file), "--var", "name=Alice"], use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", "name=Alice"],
+            cwd=temp_git_repo,
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
@@ -466,16 +485,17 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Verify rendered template output
         assert "Hello Alice! You are 25 years old." in result.stdout
 
-    def test_create_spec_with_var_override_multiple(self, temp_non_git_dir):
+    def test_create_spec_with_var_override_multiple(self, temp_git_repo):
         """Test create-spec with multiple --var overrides."""
         # Create a test template with variables
         template_content = "Hello {{ name }}! You are {{ age }} years old and live in {{ city }}."
-        template_file = temp_non_git_dir / "multiple_var_override_template.j2"
+        template_file = temp_git_repo / "multiple_var_override_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with multiple --var overrides
         result = self.run_cli(
             ["create-spec", "--verbose", str(template_file), "--var", "name=Bob", "--var", "city=Boston"],
+            cwd=temp_git_repo,
             use_test_runner=True,
         )
 
@@ -484,11 +504,11 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Verify rendered template output
         assert "Hello Bob! You are 25 years old and live in Boston." in result.stdout
 
-    def test_create_spec_with_var_override_all_variables(self, temp_non_git_dir):
+    def test_create_spec_with_var_override_all_variables(self, temp_git_repo):
         """Test create-spec with all variables provided via --var (no interactive prompts)."""
         # Create a test template with variables
         template_content = "{{ greeting }} {{ name }}! Your score is {{ score }}."
-        template_file = temp_non_git_dir / "all_var_override_template.j2"
+        template_file = temp_git_repo / "all_var_override_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with all variables provided
@@ -504,6 +524,7 @@ Your age is {{ age }} and you live in {{ city }}."""
                 "--var",
                 "score=100",
             ],
+            cwd=temp_git_repo,
             use_test_runner=True,
         )
 
@@ -512,17 +533,19 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Verify rendered template output
         assert "Hi Charlie! Your score is 100." in result.stdout
 
-    def test_create_spec_with_var_override_json_value(self, temp_non_git_dir):
+    def test_create_spec_with_var_override_json_value(self, temp_git_repo):
         """Test create-spec with --var containing JSON value."""
         # Create a test template with JSON variable
         template_content = "User: {{ user.name }}, Email: {{ user.email }}"
-        template_file = temp_non_git_dir / "json_var_override_template.j2"
+        template_file = temp_git_repo / "json_var_override_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with JSON --var
         json_value = '{"name": "Dave", "email": "dave@example.com"}'
         result = self.run_cli(
-            ["create-spec", "--verbose", str(template_file), "--var", f"user={json_value}"], use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", f"user={json_value}"],
+            cwd=temp_git_repo,
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
@@ -530,31 +553,35 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Verify rendered template output
         assert "User: Dave, Email: dave@example.com" in result.stdout
 
-    def test_create_spec_with_var_invalid_format(self, temp_non_git_dir):
+    def test_create_spec_with_var_invalid_format(self, temp_git_repo):
         """Test create-spec with invalid --var format."""
         # Create a test template
         template_content = "Hello {{ name }}!"
-        template_file = temp_non_git_dir / "invalid_var_format_template.j2"
+        template_file = temp_git_repo / "invalid_var_format_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with invalid --var format (missing =)
         result = self.run_cli(
-            ["create-spec", "--verbose", str(template_file), "--var", "invalid_format"], use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", "invalid_format"],
+            cwd=temp_git_repo,
+            use_test_runner=True,
         )
 
         assert result.returncode != 0
         assert "Error: Invalid variable format 'invalid_format'. Use KEY=VALUE format." in result.stderr
 
-    def test_create_spec_with_var_equals_in_value(self, temp_non_git_dir):
+    def test_create_spec_with_var_equals_in_value(self, temp_git_repo):
         """Test create-spec with --var value containing equals sign."""
         # Create a test template
         template_content = "Equation: {{ equation }}"
-        template_file = temp_non_git_dir / "equals_in_value_template.j2"
+        template_file = temp_git_repo / "equals_in_value_template.j2"
         template_file.write_text(template_content)
 
         # Run create-spec command with --var value containing equals
         result = self.run_cli(
-            ["create-spec", "--verbose", str(template_file), "--var", "equation=x=y+z"], use_test_runner=True
+            ["create-spec", "--verbose", str(template_file), "--var", "equation=x=y+z"],
+            cwd=temp_git_repo,
+            use_test_runner=True,
         )
 
         assert result.returncode == 0
@@ -562,15 +589,15 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Verify rendered template output
         assert "Equation: x=y+z" in result.stdout
 
-    def test_create_spec_with_var_and_output_file(self, temp_non_git_dir):
+    def test_create_spec_with_var_and_output_file(self, temp_git_repo):
         """Test create-spec with --var and --output together."""
         # Create a test template
         template_content = "Project: {{ project }}, Version: {{ version }}"
-        template_file = temp_non_git_dir / "var_and_output_template.j2"
+        template_file = temp_git_repo / "var_and_output_template.j2"
         template_file.write_text(template_content)
 
         # Define output file
-        output_file = temp_non_git_dir / "var_output.md"
+        output_file = temp_git_repo / "var_output.md"
 
         # Run create-spec command with both --var and --output
         result = self.run_cli(
@@ -585,6 +612,7 @@ Your age is {{ age }} and you live in {{ city }}."""
                 "--output",
                 str(output_file),
             ],
+            cwd=temp_git_repo,
             use_test_runner=True,
         )
 
@@ -596,7 +624,7 @@ Your age is {{ age }} and you live in {{ city }}."""
         content = output_file.read_text()
         assert "Project: MyApp, Version: 1.0.0" in content
 
-    def test_create_spec_pipe_mode(self, temp_non_git_dir):
+    def test_create_spec_pipe_mode(self, temp_git_repo):
         """Test create-spec with stdin pipe mode (no template file argument)."""
         # Template content to pipe via stdin
         template_content = (
@@ -614,7 +642,7 @@ Your age is {{ age }} and you live in {{ city }}."""
                 "--var",
                 "additional_context=test context",
             ],
-            cwd=temp_non_git_dir,
+            cwd=temp_git_repo,
             input=template_content,
         )
 
@@ -627,13 +655,13 @@ Your age is {{ age }} and you live in {{ city }}."""
         assert "## Additional context" in result.stdout
         assert "test context" in result.stdout
 
-    def test_create_spec_pipe_mode_with_output_file(self, temp_non_git_dir):
+    def test_create_spec_pipe_mode_with_output_file(self, temp_git_repo):
         """Test create-spec with stdin pipe mode and --output flag."""
         # Template content to pipe via stdin
         template_content = "Piped template: {{ message }}"
 
         # Define output file
-        output_file = temp_non_git_dir / "piped_output.md"
+        output_file = temp_git_repo / "piped_output.md"
 
         # Run create-spec command with stdin and --output
         result = self.run_cli(
@@ -645,7 +673,7 @@ Your age is {{ age }} and you live in {{ city }}."""
                 "--output",
                 str(output_file),
             ],
-            cwd=temp_non_git_dir,
+            cwd=temp_git_repo,
             input=template_content,
         )
 
@@ -798,4 +826,3 @@ Your age is {{ age }} and you live in {{ city }}."""
         # Verify template structure is preserved
         assert "# Task Template" in result.stdout
         assert "## Information from greeting service" in result.stdout
-

@@ -9,14 +9,10 @@ from state import State
 
 
 class TemplateParseError(Exception):
-    """Raised when template parsing fails"""
-
     pass
 
 
 class TemplateEngine:
-    """Abstract away the jinja2 template engine with clean factory methods"""
-
     def __init__(
         self,
         env: Environment,
@@ -35,8 +31,8 @@ class TemplateEngine:
         self._prompt_helper = prompt_helper
 
         # Add global functions to env to support MCP tools and resources
-        self.env.globals["call_tool"] = create_mcp_tool_function(self._state, self._prompt_helper)
-        self.env.globals["get_resource"] = create_mcp_resource_function(self._state)
+        self.env.globals["call_tool"] = create_mcp_tool_function(self._prompt_helper)
+        self.env.globals["get_resource"] = create_mcp_resource_function()
 
     @classmethod
     def from_file(cls, path: str | Path, state: State, prompt_helper: PromptHelper) -> "TemplateEngine":
