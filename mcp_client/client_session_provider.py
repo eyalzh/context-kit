@@ -72,31 +72,33 @@ async def get_streamablehttp_session(server_url: str, server_name: str, state: "
 
 
 @asynccontextmanager
-async def get_sse_session(server_url: str, server_name: str, state: "State"):
-    token_storage = state.get_token_storage(server_name)
-    async with AuthServer() as auth_server:
-        oauth_auth = OAuthClientProvider(
-            server_url=server_url,
-            client_metadata=OAuthClientMetadata(
-                client_name="ContextKit MCP Client",
-                redirect_uris=[AnyUrl(auth_server.callback_url)],
-                grant_types=["authorization_code", "refresh_token"],
-                response_types=["code"],
-            ),
-            storage=token_storage,
-            redirect_handler=handle_redirect,
-            callback_handler=auth_server.handle_callback,
-        )
+async def get_sse_session(server_url: str, server_name: str, state: "State", auth_server: AuthServer | None = None):
+    if auth_server is None:
+        raise ValueError("AuthServer must be provided for SSE sessions")
 
-        # Connect to a Server-Sent Events (SSE) server
-        async with sse_client(
-            url=server_url,
-            auth=oauth_auth,
-            timeout=60,
-        ) as (read_stream, write_stream):
-            # Create a session using the client streams
-            async with ClientSession(read_stream, write_stream) as session:
-                yield session
+    token_storage = state.get_token_storage(server_name)
+    oauth_auth = OAuthClientProvider(
+        server_url=server_url,
+        client_metadata=OAuthClientMetadata(
+            client_name="ContextKit MCP Client",
+            redirect_uris=[AnyUrl(auth_server.callback_url)],
+            grant_types=["authorization_code", "refresh_token"],
+            response_types=["code"],
+        ),
+        storage=token_storage,
+        redirect_handler=handle_redirect,
+        callback_handler=auth_server.handle_callback,
+    )
+
+    # Connect to a Server-Sent Events (SSE) server
+    async with sse_client(
+        url=server_url,
+        auth=oauth_auth,
+        timeout=60,
+    ) as (read_stream, write_stream):
+        # Create a session using the client streams
+        async with ClientSession(read_stream, write_stream) as session:
+            yield session
 
 
 @asynccontextmanager

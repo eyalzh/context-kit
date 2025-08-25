@@ -33,41 +33,44 @@ class MCPSessionManager:
 
         logging.info(f"Initializing {len(state.mcp_config.mcpServers)} MCP server sessions...")
 
-        for server_name, server_config in state.mcp_config.mcpServers.items():
-            try:
-                logging.debug(f"Initializing session for server: {server_name}")
+        # Use shared auth server for all SSE connections during initialization
+        from auth_server import AuthServer
+        async with AuthServer() as auth_server:
+            for server_name, server_config in state.mcp_config.mcpServers.items():
+                try:
+                    logging.debug(f"Initializing session for server: {server_name}")
 
-                if isinstance(server_config, StdioServerConfig):
-                    from mcp import StdioServerParameters
+                    if isinstance(server_config, StdioServerConfig):
+                        from mcp import StdioServerParameters
 
-                    from .client_session_provider import get_stdio_session
+                        from .client_session_provider import get_stdio_session
 
-                    session_cm = get_stdio_session(
-                        StdioServerParameters(
-                            command=server_config.command,
-                            args=server_config.args or [],
-                            env=server_config.env,
-                        ),
-                        config_dir=state.config_dir,
-                    )
-                elif isinstance(server_config, SSEServerConfig):
-                    from .client_session_provider import get_sse_session
+                        session_cm = get_stdio_session(
+                            StdioServerParameters(
+                                command=server_config.command,
+                                args=server_config.args or [],
+                                env=server_config.env,
+                            ),
+                            config_dir=state.config_dir,
+                        )
+                    elif isinstance(server_config, SSEServerConfig):
+                        from .client_session_provider import get_sse_session
 
-                    session_cm = get_sse_session(server_config.url, server_name, state)
-                else:
-                    raise ValueError(f"Unsupported server type for '{server_name}': {type(server_config)}")
+                        session_cm = get_sse_session(server_config.url, server_name, state, auth_server)
+                    else:
+                        raise ValueError(f"Unsupported server type for '{server_name}': {type(server_config)}")
 
-                # Enter the session context manager and store the session
-                session = await self._exit_stack.enter_async_context(session_cm)
-                await session.initialize()
-                self._sessions[server_name] = session
+                    # Enter the session context manager and store the session
+                    session = await self._exit_stack.enter_async_context(session_cm)
+                    await session.initialize()
+                    self._sessions[server_name] = session
 
-                logging.debug(f"Successfully initialized session for server: {server_name}")
+                    logging.debug(f"Successfully initialized session for server: {server_name}")
 
-            except Exception as e:
-                logging.error(f"Failed to initialize MCP server '{server_name}': {e}")
-                await self.cleanup()
-                raise RuntimeError(f"Failed to initialize MCP server '{server_name}': {e}") from e
+                except Exception as e:
+                    logging.error(f"Failed to initialize MCP server '{server_name}': {e}")
+                    await self.cleanup()
+                    raise RuntimeError(f"Failed to initialize MCP server '{server_name}': {e}") from e
 
         self._initialized = True
         logging.info(f"Successfully initialized {len(self._sessions)} MCP server sessions")

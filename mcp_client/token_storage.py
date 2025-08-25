@@ -11,7 +11,7 @@ from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
 logger = logging.getLogger(__name__)
 
-KEYCHAIN_STORAGE_VERSION = 1
+KEYCHAIN_STORAGE_VERSION = 2
 
 
 class KeychainTokenStorageWithFallback(TokenStorage):

@@ -77,6 +77,11 @@ class AuthServer:
                 # Schedule the future resolution in the main event loop
                 if self._main_loop:
                     self._main_loop.call_soon_threadsafe(self._callback_future.set_result, (code, state))
+                    logging.info("OAuth2 callback handled successfully")
+                else:
+                    logging.error("Main event loop is not set; cannot set callback future result")
+            else:
+                logging.error("Callback future is not set or already done; cannot set result")
 
             return HTMLResponse(
                 content="""
@@ -141,6 +146,7 @@ class AuthServer:
             return code, state
         finally:
             # Clean up
+            logging.info("Cleaning up auth server state after callback")
             self._callback_future = None
             self._main_loop = None
 
@@ -160,6 +166,8 @@ class AuthServer:
         self._main_loop = None
         self.server = None
         self.server_thread = None
+
+        logging.info("Auth server stopped")
 
     @property
     def callback_url(self) -> str:
