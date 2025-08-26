@@ -25,6 +25,12 @@ async def mock_collect_var_value(var_name: str) -> str:
     return mock_values.get(var_name, f"mock_value_{var_name}")
 
 
+async def mock_collect_var_value_interactive(var_name: str) -> str:
+    """Mock implementation for interactive variable collection that returns predictable values."""
+    # In test mode, always use direct value (same as mock_collect_var_value)
+    return await mock_collect_var_value(var_name)
+
+
 async def mock_collect_tool_input(input_schema, existing_args=None, include_optional=True):
     """Mock implementation for collecting MCP tool input parameters."""
     if existing_args is None:
@@ -68,6 +74,7 @@ async def mock_collect_tool_input(input_schema, existing_args=None, include_opti
 if __name__ == "__main__":
     with (
         patch("prompt.PromptHelper.collect_var_value", side_effect=mock_collect_var_value),
+        patch("prompt.PromptHelper.collect_var_value_interactive", side_effect=mock_collect_var_value_interactive),
         patch("prompt.PromptHelper.collect_tool_input", side_effect=mock_collect_tool_input),
     ):
         asyncio.run(main())

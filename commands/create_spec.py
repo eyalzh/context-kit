@@ -73,7 +73,8 @@ async def handle_create_spec(
                         raw_value = provided_vars[var]
 
                     else:
-                        raw_value = await prompt_helper.collect_var_value(var)
+                        # Interactive mode: user chooses between direct value or MCP tool
+                        raw_value = await prompt_helper.collect_var_value_interactive(var)
                     logging.info(f"  {var}: {raw_value}")
 
                     collected_vars[var] = parse_input_string(raw_value)
