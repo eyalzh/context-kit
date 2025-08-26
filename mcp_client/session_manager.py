@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from mcp import ClientSession
 
-from .config import SSEServerConfig, StdioServerConfig
+from .config import HTTPServerConfig, SSEServerConfig, StdioServerConfig
 
 if TYPE_CHECKING:
     from state import State
@@ -35,6 +35,7 @@ class MCPSessionManager:
 
         # Use shared auth server for all SSE connections during initialization
         from auth_server import AuthServer
+
         async with AuthServer() as auth_server:
             for server_name, server_config in state.mcp_config.mcpServers.items():
                 try:
@@ -57,6 +58,9 @@ class MCPSessionManager:
                         from .client_session_provider import get_sse_session
 
                         session_cm = get_sse_session(server_config.url, server_name, state, auth_server)
+                    elif isinstance(server_config, HTTPServerConfig):
+                        from .client_session_provider import get_streamablehttp_session
+                        session_cm = get_streamablehttp_session(server_config, server_name, state, auth_server)
                     else:
                         raise ValueError(f"Unsupported server type for '{server_name}': {type(server_config)}")
 

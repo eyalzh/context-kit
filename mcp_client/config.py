@@ -45,10 +45,25 @@ class SSEServerConfig(BaseServerConfig):
         return v
 
 
+class HTTPServerConfig(BaseServerConfig):
+    """Configuration for HTTP-based MCP servers."""
+
+    type: str = Field(default="http", description="Server transport type")
+    url: str = Field(..., description="URL endpoint for the HTTP server")
+    headers: dict[str, str] | None = Field(default=None, description="HTTP headers")
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v):
+        if v != "http":
+            raise ValueError('type must be "http" for HTTPServerConfig')
+        return v
+
+
 class MCPServersConfig(BaseModel):
     """Root configuration containing all MCP servers."""
 
-    mcpServers: dict[str, StdioServerConfig | SSEServerConfig] = Field(
+    mcpServers: dict[str, StdioServerConfig | SSEServerConfig | HTTPServerConfig] = Field(
         ..., description="Dictionary of server name to server configuration"
     )
 
@@ -74,6 +89,8 @@ class MCPServersConfig(BaseModel):
 
                     if server_type == "sse":
                         validated_servers[name] = SSEServerConfig(**config)
+                    elif server_type == "http":
+                        validated_servers[name] = HTTPServerConfig(**config)
                     else:
                         validated_servers[name] = StdioServerConfig(**config)
                 else:

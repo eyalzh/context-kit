@@ -193,23 +193,30 @@ class TestCLI:
         assert server_config["args"] == ["server.js"]
         assert server_config["env"] == {"API_KEY": "test123", "DEBUG": "true"}
 
-    def test_mcp_add_http_placeholder(self, temp_git_repo):
-        """Test adding HTTP MCP server (placeholder functionality)."""
+    def test_mcp_add_http(self, temp_git_repo):
+        """Test adding HTTP MCP server."""
         # Initialize project first
         init_result = self.run_cli(["init"], cwd=temp_git_repo)
         assert init_result.returncode == 0
 
-        # Add HTTP server (should show placeholder message)
+        # Add HTTP server
         result = self.run_cli(
             ["mcp", "add-http", "test-http", "http://example.com/api"],
             cwd=temp_git_repo,
         )
 
         assert result.returncode == 0
-        assert (
-            "HTTP server support not implemented yet. Would add 'test-http' with URL: http://example.com/api"
-            in result.stdout
-        )
+        assert "Added HTTP server 'test-http' with URL: http://example.com/api" in result.stdout
+
+        # Verify the configuration was saved
+        config_file = temp_git_repo / ".cxk" / "mcp.json"
+        assert config_file.exists()
+
+        config_data = json.loads(config_file.read_text())
+        assert "test-http" in config_data["mcpServers"]
+        server_config = config_data["mcpServers"]["test-http"]
+        assert server_config["type"] == "http"
+        assert server_config["url"] == "http://example.com/api"
 
     def test_mcp_duplicate_server_name(self, temp_git_repo):
         """Test adding MCP server with duplicate name should fail."""

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from mcp_client import SSEServerConfig, StdioServerConfig
+from mcp_client import HTTPServerConfig, SSEServerConfig, StdioServerConfig
 from state import State
 
 
@@ -90,4 +90,11 @@ async def handle_add_stdio(
 
 
 async def handle_add_http(state: State, server_name: str, url: str):
-    print(f"HTTP server support not implemented yet. Would add '{server_name}' with URL: {url}")
+    if server_name in state.mcp_config.mcpServers:
+        raise ValueError(f"Server '{server_name}' already exists")
+
+    server_config = HTTPServerConfig(url=url)
+    state.mcp_config.mcpServers[server_name] = server_config
+    state.save_mcp_config()
+
+    print(f"Added HTTP server '{server_name}' with URL: {url}")
