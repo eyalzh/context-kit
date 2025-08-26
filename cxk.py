@@ -44,10 +44,11 @@ async def main():
     add_stdio_parser.add_argument("--env", action="append", help="Environment variable (key=value)")
     add_stdio_parser.add_argument("command_line", nargs=argparse.ONE_OR_MORE, help="Command to run")
 
-    # cxk mcp add-http [server-name] [url]
+    # cxk mcp add-http [server-name] [url] --header [header]
     add_http_parser = mcp_subparsers.add_parser("add-http", help="Add HTTP MCP server")
     add_http_parser.add_argument("server_name", help="Name of the server")
     add_http_parser.add_argument("url", help="URL of the HTTP server")
+    add_http_parser.add_argument("--header", action="append", help="HTTP header (key=value)")
 
     args = parser.parse_args()
 
@@ -91,7 +92,7 @@ async def main():
         elif args.mcp_command == "add-http":
             mcp_context = MCPCommandContext(
                 subcommand="add-http",
-                add_http=MCPAddHttpContext(server_name=args.server_name, url=args.url),
+                add_http=MCPAddHttpContext(server_name=args.server_name, url=args.url, headers=args.header),
             )
             await handle_mcp(state, mcp_context)
 
