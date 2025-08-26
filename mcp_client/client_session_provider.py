@@ -14,6 +14,7 @@ from mcp.shared.auth import OAuthClientMetadata
 from pydantic import AnyUrl
 
 from auth_server import AuthServer
+from mcp_client.config import HTTPServerConfig
 from util.terminal import display_hyperlink
 
 from .mcp_logger import get_mcp_log_file
@@ -45,23 +46,30 @@ async def get_stdio_session(server_params: StdioServerParameters, config_dir: Pa
 
 
 @asynccontextmanager
-async def get_streamablehttp_session(server_url: str, server_name: str, state: "State"):
-    token_storage = state.get_token_storage(server_name)
-    oauth_auth = OAuthClientProvider(
-        server_url=server_url,
-        client_metadata=OAuthClientMetadata(
-            client_name="ContextKit MCP Client",
-            redirect_uris=[AnyUrl("http://localhost:3000/callback")],
-            grant_types=["authorization_code", "refresh_token"],
-            response_types=["code"],
-            scope="user",
-        ),
-        storage=token_storage,
-        redirect_handler=handle_redirect,
-        callback_handler=handle_callback,
-    )
+async def get_streamablehttp_session(
+    server_config: HTTPServerConfig, server_name: str, state: "State", auth_server: AuthServer | None = None
+):
+    if auth_server is None:
+        raise ValueError("AuthServer must be provided for HTTP sessions")
+
+    # If the server_config.headers includes an Authorization header, skip oauth auth (PAT or API key used directly)
+    oauth_auth = None
+    if "Authorization" not in (server_config.headers or {}):
+        token_storage = state.get_token_storage(server_name)
+        oauth_auth = OAuthClientProvider(
+            server_url=server_config.url,
+            client_metadata=OAuthClientMetadata(
+                client_name="ContextKit MCP Client",
+                redirect_uris=[AnyUrl(auth_server.callback_url)],
+                grant_types=["authorization_code", "refresh_token"],
+                response_types=["code"],
+            ),
+            storage=token_storage,
+            redirect_handler=handle_redirect,
+            callback_handler=auth_server.handle_callback,
+        )
     # Connect to a streamable HTTP server
-    async with streamablehttp_client(server_url, auth=oauth_auth) as (
+    async with streamablehttp_client(server_config.url, headers=server_config.headers, auth=oauth_auth) as (
         read_stream,
         write_stream,
         _,

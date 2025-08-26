@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from mcp_client import SSEServerConfig, StdioServerConfig
+from mcp_client import HTTPServerConfig, SSEServerConfig, StdioServerConfig
 from state import State
 
 
@@ -18,6 +18,7 @@ class MCPAddStdioContext(BaseModel):
 class MCPAddHttpContext(BaseModel):
     server_name: str
     url: str
+    headers: list[str] | None = None
 
 
 class MCPCommandContext(BaseModel):
@@ -52,7 +53,21 @@ async def handle_mcp(state: State, context: MCPCommandContext):
         )
 
     elif context.subcommand == "add-http" and context.add_http:
-        await handle_add_http(state, context.add_http.server_name, context.add_http.url)
+        headers_dict = {}
+        if context.add_http.headers:
+            for header in context.add_http.headers:
+                if "=" in header:
+                    key, value = header.split("=", 1)
+                    headers_dict[key] = value
+                else:
+                    raise ValueError(f"Invalid header format: {header}. Use KEY=VALUE format.")
+
+        await handle_add_http(
+            state,
+            context.add_http.server_name,
+            context.add_http.url,
+            headers_dict if headers_dict else None,
+        )
 
 
 async def handle_add_sse(state: State, server_name: str, url: str):
@@ -89,5 +104,14 @@ async def handle_add_stdio(
         print(f"Environment variables: {env}")
 
 
-async def handle_add_http(state: State, server_name: str, url: str):
-    print(f"HTTP server support not implemented yet. Would add '{server_name}' with URL: {url}")
+async def handle_add_http(state: State, server_name: str, url: str, headers: dict[str, str] | None = None):
+    if server_name in state.mcp_config.mcpServers:
+        raise ValueError(f"Server '{server_name}' already exists")
+
+    server_config = HTTPServerConfig(url=url, headers=headers)
+    state.mcp_config.mcpServers[server_name] = server_config
+    state.save_mcp_config()
+
+    print(f"Added HTTP server '{server_name}' with URL: {url}")
+    if headers:
+        print(f"Headers: {headers}")
