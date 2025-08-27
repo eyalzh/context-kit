@@ -14,7 +14,7 @@ from util.parse import parse_input_string
 def create_mcp_tool_function(prompt_helper: PromptHelper, state: State):
     """Create a call_mcp_tool function with state bound."""
 
-    async def call_mcp_tool(server: str, tool_name: str, args: dict) -> str | dict[str, Any]:
+    async def call_mcp_tool(server: str, tool_name: str, args: dict) -> str | dict[str, Any] | list[Any]:
         logging.info(f"Calling MCP tool: {tool_name} on server: {server} with args: {args}")
         async with get_client_session_by_server(server) as session:
             tools = await session.list_tools()
@@ -24,18 +24,24 @@ def create_mcp_tool_function(prompt_helper: PromptHelper, state: State):
 
                 logging.debug(f"Full arguments for tool {tool_name}: {full_arguments}")
                 result = await session.call_tool(tool_name, arguments=full_arguments)
-                result_unstructured = result.content[0]
-                if isinstance(result_unstructured, types.TextContent):
-                    return parse_input_string(result_unstructured.text)
-                elif isinstance(result_unstructured, types.ImageContent | types.AudioContent):
-                    if state.config_dir:
-                        file_path = handle_binary_content(state.config_dir, result_unstructured)
-                        return file_path if file_path else ""
+
+                # Process all content items as a list first
+                processed_items = []
+                for content_item in result.content:
+                    if isinstance(content_item, types.TextContent):
+                        processed_items.append(parse_input_string(content_item.text))
+                    elif isinstance(content_item, types.ImageContent | types.AudioContent):
+                        if state.config_dir:
+                            file_path = handle_binary_content(state.config_dir, content_item)
+                            processed_items.append(file_path if file_path else "")
+                        else:
+                            logging.error("Config directory not available for binary data storage")
+                            processed_items.append("")
                     else:
-                        logging.error("Config directory not available for binary data storage")
-                        return ""
-                else:
-                    return ""
+                        processed_items.append("")
+
+                # Return single item directly, or list if multiple items
+                return processed_items[0] if len(processed_items) == 1 else processed_items
             except Exception as e:
                 logging.error(f"Error calling tool {tool_name}: {e}")
                 logging.error("Available tools:")
