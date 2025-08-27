@@ -4,7 +4,7 @@ FastMCP reference MCP server for testing and demonstration purposes.
 
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP, Image
 
 # Create an MCP server
 mcp = FastMCP("Test-Server", "1.0.0")
@@ -32,3 +32,11 @@ def jsonTest(cloudId: str, ticketId: str, optional_other: str | None = None) -> 
 def get_greeting(name: str) -> str:
     """Get a personalized greeting"""
     return f"Hello, {name}!"
+
+
+# Add a binary tool (tests/files/image1.avif)
+@mcp.tool()
+def get_blob() -> Image:
+    """Get a binary blob test tool"""
+    with open("tests/files/image1.avif", "rb") as f:
+        return Image(data=f.read(), format="avif")

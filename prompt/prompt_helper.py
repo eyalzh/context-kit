@@ -1,8 +1,9 @@
 import logging
 
 import questionary
+from mcp import types
 
-from mcp_client import get_session_manager
+from mcp_client import get_session_manager, handle_binary_content
 from state import State
 
 
@@ -221,11 +222,20 @@ class PromptHelper:
             # Handle list of content items
             content_parts = []
             for item in result.content:
-                # Try to get text content first (safely)
-                text_content = getattr(item, "text", None)
-                if text_content:
-                    content_parts.append(str(text_content))
-                # For non-text content, convert to string
+                # Handle binary content types
+                if isinstance(item, types.ImageContent | types.AudioContent):
+                    if self._state.config_dir:
+                        file_path = handle_binary_content(self._state.config_dir, item)
+                        if file_path:
+                            content_parts.append(file_path)
+                        else:
+                            logging.error(f"Failed to save binary content for variable '{var_name}'")
+                    else:
+                        logging.error("Config directory not available for binary data storage")
+                # Handle text content
+                elif isinstance(item, types.TextContent):
+                    content_parts.append(str(item.text))
+                # For other content types, convert to string
                 else:
                     content_parts.append(str(item))
             content = "\n".join(content_parts)
@@ -279,6 +289,6 @@ class PromptHelper:
             choice_title = f"{tool.name} - {description}"
             choices.append(questionary.Choice(choice_title, tool.name))
 
-        tool_name = await questionary.select("Select a tool:", choices=choices).ask_async()
+        tool_name = await questionary.select("Select a tool:", choices=choices, use_search_filter=True).ask_async()
 
         return tool_name

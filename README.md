@@ -111,6 +111,20 @@ You can also filter resources to mask sensitive information:
 {{ support_ticket_info | regex_replace(r'\b[\w.+-]+@[\w.-]+\.\w+\b', '[EMAIL_REDACTED]') }}
 ```
 
+### Interactively selecting MCP resources and tools
+
+Template variables can be given values either directly or by selecting an MCP tool to call. For example:
+
+```
+# Spec Template (spec.md)
+
+## Task description
+{{ task }}
+```
+
+Running create-spec will then prompt you to either provide a direct value for `task` or select an MCP server, tool and args to call to fetch the task description.
+
+
 ### Initialize a project
 ```
 cxk init
