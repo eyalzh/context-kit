@@ -145,7 +145,7 @@ cxk mcp add-stdio <server-name> [--env key=value] -- <command> [args...]
 
 Add an HTTP MCP server:
 ```
-cxk mcp add-http <server-name> <url>
+cxk mcp add-http <server-name> <url> [--header key=value]
 ```
 
 ### MCP Configuration Examples
@@ -155,12 +155,12 @@ cxk mcp add-http <server-name> <url>
 cxk init
 
 # Add an SSE server
-cxk mcp add-sse my-server ws://localhost:3000
+cxk mcp add-sse my-server https://mcp.example.com/v1/sse
 
 # Add a stdio server with environment variables
 cxk mcp add-stdio my-stdio-server --env API_KEY=secret -- python server.py
 
 # Add an HTTP server
-cxk mcp add-http my-http-server http://localhost:8000
+cxk mcp add-http my-http-server http://localhost:8000 --header Authorization='Bearer ....'
 ```
 

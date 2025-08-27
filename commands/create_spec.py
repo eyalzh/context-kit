@@ -15,10 +15,11 @@ async def handle_create_spec(
     output_file: str | None = None,
     var_overrides: list[str] | None = None,
 ):
-    # Pre-initialize all MCP client sessions
+    # Initialize session manager without pre-initializing all servers
     session_manager = get_session_manager()
     try:
-        await session_manager.initialize_all_sessions(state)
+        # Set the state in session manager for on-demand initialization
+        session_manager.set_state(state)
         prompt_helper = PromptHelper(state)
 
         # Detect piped input (stdin not a TTY) and ensure there's data before using it

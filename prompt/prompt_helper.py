@@ -194,8 +194,8 @@ class PromptHelper:
         if not server_name:
             raise ValueError("No MCP server selected")
 
-        # Get session for selected server
-        session = session_manager.get_session(server_name)
+        # Get session for selected server (initialize on-demand)
+        session = await session_manager.get_session_async(server_name)
 
         # List available tools
         tools_result = await session.list_tools()
@@ -289,6 +289,8 @@ class PromptHelper:
             choice_title = f"{tool.name} - {description}"
             choices.append(questionary.Choice(choice_title, tool.name))
 
-        tool_name = await questionary.select("Select a tool:", choices=choices, use_search_filter=True).ask_async()
+        tool_name = await questionary.select(
+            "Select a tool:", choices=choices, use_search_filter=True, use_jk_keys=False
+        ).ask_async()
 
         return tool_name

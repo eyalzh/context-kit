@@ -48,11 +48,7 @@ def test_handle_image_content():
         test_data = b"fake image data"
         encoded_data = base64.b64encode(test_data).decode("utf-8")
 
-        image_content = types.ImageContent(
-            type="image",
-            data=encoded_data,
-            mimeType="image/jpeg"
-        )
+        image_content = types.ImageContent(type="image", data=encoded_data, mimeType="image/jpeg")
 
         # Handle the content
         file_path = handle_binary_content(config_dir, image_content)
@@ -82,7 +78,7 @@ def test_handle_audio_content():
         audio_content = types.AudioContent(
             type="audio",
             data=encoded_data,
-            mimeType="audio/mpeg"  # This should map to .mp3
+            mimeType="audio/mpeg",  # This should map to .mp3
         )
 
         # Handle the content
@@ -112,9 +108,7 @@ def test_handle_blob_resource_contents():
         encoded_data = base64.b64encode(test_data).decode("utf-8")
 
         blob_content = types.BlobResourceContents(
-            blob=encoded_data,
-            uri=AnyUrl("test://blob"),
-            mimeType="application/octet-stream"
+            blob=encoded_data, uri=AnyUrl("test://blob"), mimeType="application/octet-stream"
         )
 
         # Handle the content
@@ -145,7 +139,6 @@ def test_handle_unsupported_content():
 
         # Should return empty string for unsupported types
         assert file_path == ""
-
 
 
 def test_save_binary_data_error_handling():

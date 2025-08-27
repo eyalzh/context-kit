@@ -113,6 +113,6 @@ async def get_sse_session(server_url: str, server_name: str, state: "State", aut
 async def get_client_session_by_server(server_name: str) -> AsyncGenerator[ClientSession, None]:
     session_manager = get_session_manager()
 
-    if session_manager.is_initialized:
-        session = session_manager.get_session(server_name)
-        yield session
+    # Use on-demand initialization if available
+    session = await session_manager.get_session_async(server_name)
+    yield session
