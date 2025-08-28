@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import logging
 import sys
+from importlib import metadata
 
 from commands.create_spec import handle_create_spec
 from commands.init import handle_init
@@ -15,8 +16,14 @@ from commands.mcp import (
 from state import State
 
 
-async def main():
-    parser = argparse.ArgumentParser(description="ContextKit CLI tool")
+async def async_main():
+    try:
+        version = metadata.version("context-kit")
+    except metadata.PackageNotFoundError:
+        version = "unknown"
+
+    parser = argparse.ArgumentParser(description=f"ContextKit CLI tool (v{version})")
+    parser.add_argument("--version", action="version", version=f"cxk {version}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # cxk init
@@ -56,17 +63,18 @@ async def main():
         parser.print_help()
         sys.exit(1)
 
-    state = State()
-
     if args.command == "init":
+        state = State()
         await handle_init(state)
 
     elif args.command == "create-spec":
+        state = State()
         log_level = logging.DEBUG if args.verbose else logging.WARNING
         logging.basicConfig(level=log_level, format="%(message)s", force=True)
         await handle_create_spec(args.spec_template, state, args.output, args.var)
 
     elif args.command == "mcp":
+        state = State()
         if not args.mcp_command:
             mcp_parser.print_help()
             sys.exit(1)
@@ -97,5 +105,10 @@ async def main():
             await handle_mcp_command(state, mcp_context)
 
 
+def main():
+    """Entry point for the cxk command."""
+    asyncio.run(async_main())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

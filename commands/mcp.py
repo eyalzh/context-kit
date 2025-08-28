@@ -30,7 +30,8 @@ class MCPCommandContext(BaseModel):
 
 async def handle_mcp_command(state: State, context: MCPCommandContext):
     if not state.is_initialized:
-        raise RuntimeError("Project not initialized. Run 'cxk init' first.")
+        print("Project not initialized. Run 'cxk init' first.")
+        return
 
     if context.subcommand == "add-sse" and context.add_sse:
         await handle_add_sse(state, context.add_sse.server_name, context.add_sse.url)

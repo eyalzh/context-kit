@@ -62,6 +62,29 @@ TBD (show template, generation of two specs, and the spec files)
 - Reduce cost and time. AI agents won't need to make additional MCP calls.
 - Cleaner codebase: Keep spec templates in your codebase rather than specific task related documents.
 
+## Installation
+
+### Install from source (development)
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd context-kit
+```
+
+2. Install in editable mode:
+```bash
+pip install -e .
+```
+
+After installation, you can use the `cxk` command:
+```bash
+cxk --help
+```
+
+### Requirements
+- Python 3.11 or higher
+
 ## Usage
 
 ### Add MCP tool calls with variables
