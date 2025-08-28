@@ -10,7 +10,7 @@ from commands.mcp import (
     MCPAddSSEContext,
     MCPAddStdioContext,
     MCPCommandContext,
-    handle_mcp,
+    handle_mcp_command,
 )
 from state import State
 
@@ -76,7 +76,7 @@ async def main():
                 subcommand="add-sse",
                 add_sse=MCPAddSSEContext(server_name=args.server_name, url=args.url),
             )
-            await handle_mcp(state, mcp_context)
+            await handle_mcp_command(state, mcp_context)
 
         elif args.mcp_command == "add-stdio":
             mcp_context = MCPCommandContext(
@@ -87,14 +87,14 @@ async def main():
                     command=args.command_line,
                 ),
             )
-            await handle_mcp(state, mcp_context)
+            await handle_mcp_command(state, mcp_context)
 
         elif args.mcp_command == "add-http":
             mcp_context = MCPCommandContext(
                 subcommand="add-http",
                 add_http=MCPAddHttpContext(server_name=args.server_name, url=args.url, headers=args.header),
             )
-            await handle_mcp(state, mcp_context)
+            await handle_mcp_command(state, mcp_context)
 
 
 if __name__ == "__main__":

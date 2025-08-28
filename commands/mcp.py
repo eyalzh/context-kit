@@ -28,7 +28,7 @@ class MCPCommandContext(BaseModel):
     add_http: MCPAddHttpContext | None = None
 
 
-async def handle_mcp(state: State, context: MCPCommandContext):
+async def handle_mcp_command(state: State, context: MCPCommandContext):
     if not state.is_initialized:
         raise RuntimeError("Project not initialized. Run 'cxk init' first.")
 
