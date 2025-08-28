@@ -60,6 +60,7 @@ uv run cxk.py create-spec tests/templates/spec5.md
 ```
 
 ```
+uv run cxk.py create-spec tests/templates/spec6.md
 uv run cxk.py create-spec tests/templates/spec6.md --var name=MrBean
 ```
 
