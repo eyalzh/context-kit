@@ -1,4 +1,4 @@
-# ContextKit 🔧
+# ContextKit
 
 A CLI tool and MCP client for creating spec files for AI coding agents. ContextKit generates specs from reusable Jinja2-based templates, filling in context from various MCP sources and user input.
 
