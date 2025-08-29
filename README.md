@@ -52,7 +52,7 @@ cxk init
 ### 2. Add MCP servers
 ```bash
 # Add SSE server
-cxk mcp add-sse jira-server http://localhost:3000
+cxk mcp add-sse ticket-server http://localhost:3000
 
 # Add stdio server with environment
 cxk mcp add-stdio local-tools --env API_KEY=secret -- python server.py
@@ -75,7 +75,7 @@ cxk create-spec path/to/template.md
 # Development Task
 Please develop the task below. You should start by ...
 
-{% set ticket = call_tool('jira', 'getJiraIssue', {'cloudId': '1234', 'issueKey': ticket_id}) %}
+{% set ticket = call_tool('ticket-service', 'get_issue', {'cloudId': '1234', 'issueKey': ticket_id}) %}
 
 ## Task Description
 {{ ticket.fields.description }}
@@ -113,7 +113,7 @@ cxk create-spec design-spec.md --var design_id=fig-456
 
 **Extract specific fields:**
 ```markdown
-{% set ticket = call_tool('jira', 'getJiraIssue', {'issueKey': ticket_id}) %}
+{% set ticket = call_tool('ticket-service', 'get_issue', {'issueKey': ticket_id}) %}
 ## Summary
 {{ ticket.fields.summary }}
 
