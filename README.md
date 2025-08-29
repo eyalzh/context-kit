@@ -72,6 +72,9 @@ cxk create-spec path/to/template.md
 
 **Template (spec.md):**
 ```markdown
+# Development Task
+Please develop the task below. You should start by ...
+
 {% set ticket = call_tool('jira', 'getJiraIssue', {'cloudId': '1234', 'issueKey': ticket_id}) %}
 
 ## Task Description
