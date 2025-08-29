@@ -1,10 +1,12 @@
-# Task Template
+# Task
 
-## Ticket description
+Please complete the task described below. Start by planning...
+
+## Ticket
 
 {% set ticket = call_tool('test-mcp', 'jsonTest', {'cloudId': '1234', 'ticketId': ticket_id}) %}
 
-{{ ticket.id }}
+Ticket ID: {{ ticket.id }}
 
 ### Description
 {{ ticket.description }}

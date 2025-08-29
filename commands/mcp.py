@@ -1,3 +1,4 @@
+import logging
 from pydantic import BaseModel
 
 from mcp_client import HTTPServerConfig, SSEServerConfig, StdioServerConfig

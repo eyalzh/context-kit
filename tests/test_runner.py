@@ -9,7 +9,7 @@ from unittest.mock import patch
 # Add parent directory to path so we can import cxk
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from cxk import main
+from cxk import async_main
 
 
 async def mock_collect_var_value(var_name: str) -> str:
@@ -77,4 +77,4 @@ if __name__ == "__main__":
         patch("prompt.PromptHelper.collect_var_value_interactive", side_effect=mock_collect_var_value_interactive),
         patch("prompt.PromptHelper.collect_tool_input", side_effect=mock_collect_tool_input),
     ):
-        asyncio.run(main())
+        asyncio.run(async_main())

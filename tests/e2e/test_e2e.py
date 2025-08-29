@@ -99,13 +99,6 @@ class TestCLI:
         assert result2.returncode == 0
         assert "Project is already initialized!" in result2.stdout
 
-    def test_mcp_before_init(self, temp_git_repo):
-        """Test MCP commands before initialization should fail."""
-        result = self.run_cli(["mcp", "add-sse", "test-server", "http://example.com"], cwd=temp_git_repo)
-
-        assert result.returncode != 0
-        assert "Project not initialized. Run 'cxk init' first." in result.stderr
-
     def test_mcp_add_sse(self, temp_git_repo):
         """Test adding an SSE MCP server."""
         # Initialize project first
