@@ -68,6 +68,22 @@ cxk create-spec path/to/template.md
 
 ## Usage Examples 💻
 
+### Basic Template with a variable
+```markdown
+# Development Task
+Please develop the task below. You should start by ...
+
+## PRD
+{{ prd }}
+```
+
+**Generate spec:**
+```bash
+cxk create-spec spec.md
+```
+
+This will prompt you to provide a value for `prd` either directly or by selecting an MCP tool to call.
+
 ### Basic Template with MCP Tool Call
 
 **Template (spec.md):**
