@@ -100,7 +100,7 @@ async def handle_create_spec(
             logging.error(f"Error: {e}")
             sys.exit(1)
         except Exception as e:
-            logging.error(f"Error: Failed to process template: {e}")
+            logging.exception(f"Error: Failed to process template")
             sys.exit(1)
 
     finally:
