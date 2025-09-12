@@ -4,6 +4,13 @@ A CLI tool and MCP client for creating spec files for AI coding agents. ContextK
 
 **Note**: While ContextKit is an MCP client, it doesn't use an AI model - it's a tool to harness the MCP ecosystem for context injection.
 
+<details>
+<summary>Demo</summary>
+
+![](./docs/usecase1.gif)
+
+</details>
+
 ## How it Works 🚀
 
 ContextKit utilizes the MCP (Model Context Protocol) ecosystem to inject context into spec files from various sources like ticketing systems, databases, document storage, and design tools. It works with spec templates - reusable Jinja2 template files containing context variables that define the common structure and requirements of development tasks.
