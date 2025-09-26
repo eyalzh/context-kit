@@ -33,7 +33,7 @@ uv sync
 ### Install in editable mode
 
 ```bash
-pip install -e .
+pip3 install -e .
 ```
 
 After editable installation, you can use the `cxk` command directly:
@@ -76,6 +76,8 @@ cxk create-spec path/to/template.md
 ## Usage Examples 💻
 
 ### Basic Template with a variable
+
+**Template (spec.md):**
 ```markdown
 # Development Task
 Please develop the task below. You should start by ...
