@@ -154,6 +154,7 @@ cxk create-spec template.md
 # ? How would you like to provide the value for 'ticket_id'?
 #   › Provide value directly
 #     Use MCP tool to fetch value
+#     Read from file
 ```
 
 ### Output to File

@@ -159,17 +159,18 @@ class PromptHelper:
 
     async def collect_var_value_interactive(self, var_name: str) -> str:
         """
-        Interactive variable collection - user chooses between direct value or MCP tool.
+        Interactive variable collection - user chooses between direct value, MCP tool, or file.
 
         :param var_name: Name of the variable to collect
         :return: String value for the variable
         """
-        # Ask user to choose between direct value or MCP tool
+        # Ask user to choose between direct value, MCP tool, or file
         choice = await questionary.select(
             f"How would you like to provide the value for '{var_name}'?",
             choices=[
                 questionary.Choice("Provide value directly", "direct"),
                 questionary.Choice("Use MCP tool to fetch value", "mcp"),
+                questionary.Choice("Read from file", "file"),
             ],
         ).ask_async()
 
@@ -177,6 +178,8 @@ class PromptHelper:
             return await self.collect_var_value(var_name)
         elif choice == "mcp":
             return await self._collect_var_value_from_mcp(var_name)
+        elif choice == "file":
+            return await self._collect_var_value_from_file(var_name)
         else:
             raise ValueError("Invalid choice")
 
@@ -244,6 +247,45 @@ class PromptHelper:
 
         logging.info(f"Tool result for '{var_name}': {content}")
         return content
+
+    async def _collect_var_value_from_file(self, var_name: str) -> str:
+        """
+        Collect variable value by reading from a file.
+
+        :param var_name: Name of the variable to collect
+        :return: String content of the selected file
+        """
+        import os
+
+        # Use questionary.path to select a file
+        file_path = await questionary.path(
+            f"Select a file for variable '{var_name}':",
+            default="./",
+            only_directories=False,
+        ).ask_async()
+
+        if not file_path:
+            raise ValueError("No file selected")
+
+        # Ensure the path exists and is a file
+        if not os.path.exists(file_path):
+            raise ValueError(f"File does not exist: {file_path}")
+
+        if not os.path.isfile(file_path):
+            raise ValueError(f"Path is not a file: {file_path}")
+
+        try:
+            # Try to read the file as UTF-8
+            with open(file_path, encoding='utf-8') as f:
+                content = f.read()
+
+            logging.info(f"Successfully read file '{file_path}' for variable '{var_name}'")
+            return content
+
+        except UnicodeDecodeError as e:
+            raise ValueError(f"File '{file_path}' is not a valid UTF-8 text file: {e}") from e
+        except Exception as e:
+            raise ValueError(f"Failed to read file '{file_path}': {e}") from e
 
     async def _select_mcp_server(self) -> str | None:
         """
