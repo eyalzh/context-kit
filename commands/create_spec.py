@@ -74,6 +74,12 @@ async def handle_create_spec(
                         raw_value = provided_vars[var]
 
                     else:
+                        # Check if we're in non-interactive mode (piped input)
+                        if stdin_piped:
+                            logging.error(f"Error: Variable '{var}' is required but not provided. When using piped input, all variables must be provided using --var arguments.")
+                            logging.error(f"Example: cat template.md | uv run cxk create-spec --var {var}=value")
+                            sys.exit(1)
+                        
                         # Interactive mode: user chooses between direct value or MCP tool
                         raw_value = await prompt_helper.collect_var_value_interactive(var)
                     logging.info(f"  {var}: {raw_value}")
